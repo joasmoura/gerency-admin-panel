@@ -1,5 +1,5 @@
 services:
-  manager_panel:
+  admin_panel:
     image: josinho/node:22-nuxt
     # build:
     #   context: .
@@ -15,11 +15,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.routers.manager_panel.rule=Host(`app.gerency.com`) && PathPrefix(`/`)"
-      - "traefik.http.routers.manager_panel.entrypoints=websecure"
-      - "traefik.http.services.manager_panel.loadbalancer.server.port=3001"
-      - "traefik.http.routers.manager_panel.tls.certresolver=lets-encrypt"
-      - "traefik.http.routers.manager_panel.tls=true"
+      - "traefik.http.routers.admin_panel.rule=Host(`admin.gerency.com`) && PathPrefix(`/`)"
+      - "traefik.http.routers.admin_panel.entrypoints=websecure"
+      - "traefik.http.services.admin_panel.loadbalancer.server.port=3002"
+      - "traefik.http.routers.admin_panel.tls.certresolver=lets-encrypt"
+      - "traefik.http.routers.admin_panel.tls=true"
       - "traefik.docker.network=web"
     deploy:
       mode: replicated
@@ -39,7 +39,7 @@ services:
           - node.role == manager
     environment:
       - NODE_ENV=production
-      - PORT=3001 # Porta padrão do Nuxt.js é 3000, mas pode ser alterada conforme necessário
+      - PORT=3002 # Porta padrão do Nuxt.js é 3000, mas pode ser alterada conforme necessário
       - NUXT_PUBLIC_API_BASE=https://api.gerency.com/api
 
 # volumes:
