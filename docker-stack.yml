@@ -1,0 +1,52 @@
+services:
+  manager_panel:
+    image: josinho/node:22-nuxt
+    # build:
+    #   context: .
+    working_dir: /app
+    # volumes:
+    #   - gerency_panel:/app
+    # ports:
+    #   - 3001:3001
+    # expose:
+    #   - 3001
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.manager_panel.rule=Host(`app.gerency.com`) && PathPrefix(`/`)"
+      - "traefik.http.routers.manager_panel.entrypoints=websecure"
+      - "traefik.http.services.manager_panel.loadbalancer.server.port=3001"
+      - "traefik.http.routers.manager_panel.tls.certresolver=lets-encrypt"
+      - "traefik.http.routers.manager_panel.tls=true"
+      - "traefik.docker.network=web"
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1              # atualiza 1 container por vez
+        delay: 10s                  # espera 10s entre cada atualização
+        order: start-first          # inicia o novo antes de parar o antigo (zero downtime)
+        failure_action: rollback    # volta à versão anterior se falhar
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+    environment:
+      - NODE_ENV=production
+      - PORT=3001 # Porta padrão do Nuxt.js é 3000, mas pode ser alterada conforme necessário
+      - NUXT_PUBLIC_API_BASE=https://api.gerency.com/api
+
+# volumes:
+#   gerency_panel:
+#     driver: local
+#     name: gerency_panel
+
+networks:
+  web:
+    external: true
