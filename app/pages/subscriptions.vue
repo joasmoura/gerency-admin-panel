@@ -197,14 +197,14 @@ const stats = computed(() => {
       >
         <template #tenant_name-cell="{ row }">
           <NuxtLink 
-            :to="`/tenants?search=${row.tenant_uuid}`"
+            :to="`/tenants?search=${row.original.tenant.uuid}`"
             class="font-medium text-primary-600 hover:text-primary-700"
           >
-            {{ row.original.tenant_name }}
+            {{ row.original.tenant.name }}
           </NuxtLink>
         </template>
         <template #plan_name-cell="{ row }">
-          {{ row.original.plan_name || '-' }}
+          {{ row.original.plan.name || '-' }}
         </template>
         <template #status-cell="{ row }">
           <div class="flex items-center gap-2">
