@@ -276,13 +276,8 @@ const isExpiringSoon = (dateStr: string | null) => {
             >
               Estender
             </UButton>
-            <UButton
-              color="error"
-              variant="ghost"
-              size="sm"
-              icon="i-lucide-x"
-              @click="handleRevoke(courtesy)"
-            >
+            
+            <UButton color="error" variant="ghost" size="sm" icon="i-lucide-x" @click="handleRevoke(courtesy)">
               Revogar
             </UButton>
           </div>
