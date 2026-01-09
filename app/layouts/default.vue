@@ -34,6 +34,11 @@ const navigationItems: NavigationMenuItem[] = [
     icon: 'i-lucide-gift',
     to: '/courtesies',
   },
+  {
+    label: 'Depoimentos',
+    icon: 'i-lucide-message-square-quote',
+    to: '/testimonials',
+  },
 ]
 
 const handleLogout = async () => {

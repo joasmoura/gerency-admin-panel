@@ -109,6 +109,22 @@ export interface SubscriptionListItem {
   current_period_end: string | null;
 }
 
+export interface Testimonial {
+  id: number;
+  uuid: string;
+  author_name: string;
+  author_role: string | null;
+  author_company: string | null;
+  author_avatar: string | null;
+  quote: string;
+  rating: number;
+  sort_order: number;
+  is_active: boolean;
+  is_featured: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export function useAdminApi() {
   const config = useRuntimeConfig();
   const baseURL = config.public.apiBase;
@@ -482,6 +498,132 @@ export function useAdminApi() {
     }
   };
 
+  // =========================================================================
+  // TESTIMONIALS
+  // =========================================================================
+
+  const fetchTestimonials = async (params?: {
+    search?: string;
+    is_active?: boolean;
+    is_featured?: boolean;
+    page?: number;
+    per_page?: number;
+  }) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const query = new URLSearchParams();
+      if (params?.search) query.append('search', params.search);
+      if (params?.is_active !== undefined) query.append('is_active', String(params.is_active));
+      if (params?.is_featured !== undefined) query.append('is_featured', String(params.is_featured));
+      if (params?.page) query.append('page', String(params.page));
+      if (params?.per_page) query.append('per_page', String(params.per_page));
+      
+      const response = await $fetch<{ data: Testimonial[]; meta: any }>(`${baseURL}/admin/testimonials?${query}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return response;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchTestimonial = async (uuid: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: Testimonial }>(`${baseURL}/admin/testimonials/${uuid}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const createTestimonial = async (data: Partial<Testimonial>) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: Testimonial }>(`${baseURL}/admin/testimonials`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: data,
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const updateTestimonial = async (uuid: string, data: Partial<Testimonial>) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: Testimonial }>(`${baseURL}/admin/testimonials/${uuid}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: data,
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const deleteTestimonial = async (uuid: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      await $fetch(`${baseURL}/admin/testimonials/${uuid}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const reorderTestimonials = async (items: { uuid: string; sort_order: number }[]) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      await $fetch(`${baseURL}/admin/testimonials/reorder`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: { items },
+      });
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     loading,
     error,
@@ -508,5 +650,12 @@ export function useAdminApi() {
     grantCourtesy,
     revokeCourtesy,
     extendCourtesy,
+    // Testimonials
+    fetchTestimonials,
+    fetchTestimonial,
+    createTestimonial,
+    updateTestimonial,
+    deleteTestimonial,
+    reorderTestimonials,
   };
 }
