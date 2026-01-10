@@ -22,6 +22,7 @@ const planForm = ref({
   trial_days: 14,
   is_featured: false,
   is_active: true,
+  sort_order: 0,
   active_prices: [] as { amount: number; interval: 'monthly' | 'yearly'; currency: string }[],
 })
 
@@ -71,6 +72,7 @@ const resetPlanForm = () => {
     trial_days: 14,
     is_featured: false,
     is_active: true,
+    sort_order: 0,
     active_prices: [],
   }
   editingPlan.value = null
@@ -94,6 +96,7 @@ const openEditModal = (plan: Plan) => {
     trial_days: plan.trial_days,
     is_featured: plan.is_featured,
     is_active: plan.is_active,
+    sort_order: plan.sort_order || 0,
     active_prices: [],
   }
   showCreateModal.value = true
@@ -400,9 +403,14 @@ const currencyOptions = [
               </UFormField>
             </div>
 
-            <UFormField label="Dias de Trial" name="trial_days">
-              <UInput v-model.number="planForm.trial_days" type="number" min="0" />
-            </UFormField>
+            <div class="grid grid-cols-2 gap-4">
+              <UFormField label="Dias de Trial" name="trial_days">
+                <UInput v-model.number="planForm.trial_days" type="number" min="0" />
+              </UFormField>
+              <UFormField label="Ordem de Exibição" name="sort_order">
+                <UInput v-model.number="planForm.sort_order" type="number" min="0" />
+              </UFormField>
+            </div>
 
             <div class="flex items-center gap-4">
               <UCheckbox v-model="planForm.is_featured" label="Plano em destaque" />
