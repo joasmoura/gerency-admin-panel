@@ -125,6 +125,34 @@ export interface Testimonial {
   updated_at: string;
 }
 
+export interface BlogPost {
+  id: number;
+  uuid: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string | null;
+  featured_image: string | null;
+  category: string | null;
+  tags: string[] | null;
+  author_id: number | null;
+  author: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+  status: 'draft' | 'published' | 'archived';
+  is_featured: boolean;
+  sort_order: number;
+  meta_title: string | null;
+  meta_description: string | null;
+  views_count: number;
+  reading_time?: number;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export function useAdminApi() {
   const config = useRuntimeConfig();
   const baseURL = config.public.apiBase;
@@ -624,6 +652,134 @@ export function useAdminApi() {
     }
   };
 
+  // =========================================================================
+  // BLOG POSTS
+  // =========================================================================
+
+  const fetchBlogPosts = async (params?: {
+    search?: string;
+    status?: string;
+    category?: string;
+    is_featured?: boolean;
+    page?: number;
+    per_page?: number;
+  }) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const query = new URLSearchParams();
+      if (params?.search) query.append('search', params.search);
+      if (params?.status) query.append('status', params.status);
+      if (params?.category) query.append('category', params.category);
+      if (params?.is_featured !== undefined) query.append('is_featured', String(params.is_featured));
+      if (params?.page) query.append('page', String(params.page));
+      if (params?.per_page) query.append('per_page', String(params.per_page));
+      
+      const response = await $fetch<{ data: BlogPost[]; meta: any }>(`${baseURL}/admin/blog?${query}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return response;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchBlogPost = async (uuid: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: BlogPost }>(`${baseURL}/admin/blog/${uuid}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const createBlogPost = async (data: Partial<BlogPost>) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: BlogPost }>(`${baseURL}/admin/blog`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: data,
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const updateBlogPost = async (uuid: string, data: Partial<BlogPost>) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: BlogPost }>(`${baseURL}/admin/blog/${uuid}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: data,
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const deleteBlogPost = async (uuid: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      await $fetch(`${baseURL}/admin/blog/${uuid}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const reorderBlogPosts = async (items: { uuid: string; sort_order: number }[]) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      await $fetch(`${baseURL}/admin/blog/reorder`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: { items },
+      });
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     loading,
     error,
@@ -657,5 +813,12 @@ export function useAdminApi() {
     updateTestimonial,
     deleteTestimonial,
     reorderTestimonials,
+    // Blog Posts
+    fetchBlogPosts,
+    fetchBlogPost,
+    createBlogPost,
+    updateBlogPost,
+    deleteBlogPost,
+    reorderBlogPosts,
   };
 }
