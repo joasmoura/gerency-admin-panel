@@ -97,8 +97,37 @@ export interface PaymentMethod {
     last4: string;
     exp_month: number;
     exp_year: number;
+    funding?: string;
+  } | null;
+  boleto?: {
+    tax_id: string | null;
+  } | null;
+  us_bank_account?: {
+    bank_name: string;
+    last4: string;
+    account_type: string;
+  } | null;
+  sepa_debit?: {
+    bank_code: string;
+    last4: string;
+    country: string;
+  } | null;
+  bacs_debit?: {
+    sort_code: string;
+    last4: string;
   } | null;
   is_default: boolean;
+  created?: number;
+}
+
+export interface AvailablePaymentMethod {
+  id: string;
+  name: string;
+  name_pt: string;
+  icon: string;
+  currencies: string[];
+  recurring: boolean;
+  processing_time?: string;
 }
 
 export function useSubscription() {
@@ -416,16 +445,36 @@ export function useSubscription() {
     }
   };
 
-  const getSetupIntent = async () => {
+  const fetchAvailablePaymentMethods = async (currency?: string) => {
     loading.value = true;
     error.value = null;
     
     try {
-      const response = await $fetch<{ data: { client_secret: string } }>(`${baseURL}/billing/payment-methods/setup-intent`, {
-        method: 'POST',
+      const params = currency ? `?currency=${currency}` : '';
+      const response = await $fetch<{ data: AvailablePaymentMethod[], currency: string }>(`${baseURL}/billing/payment-methods/available${params}`, {
+        method: 'GET',
         headers: getAuthHeaders(),
       });
-      return response.data.client_secret;
+      return response;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const getSetupIntent = async (currency?: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: { client_secret: string, payment_method_types: string[] } }>(`${baseURL}/billing/payment-methods/setup-intent`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: { currency: currency || 'BRL' },
+      });
+      return response.data;
     } catch (err) {
       error.value = err;
       throw err;
@@ -582,6 +631,7 @@ export function useSubscription() {
     
     // Payment methods
     fetchPaymentMethods,
+    fetchAvailablePaymentMethods,
     getSetupIntent,
     addPaymentMethod,
     removePaymentMethod,

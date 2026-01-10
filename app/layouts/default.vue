@@ -39,6 +39,11 @@ const navigationItems: NavigationMenuItem[] = [
     icon: 'i-lucide-message-square-quote',
     to: '/testimonials',
   },
+  {
+    label: 'Blog',
+    icon: 'i-lucide-book-open',
+    to: '/blog',
+  },
 ]
 
 const handleLogout = async () => {

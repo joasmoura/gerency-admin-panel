@@ -8,7 +8,6 @@ declare global {
 const props = defineProps<{
   modelValue: boolean;
   loading?: boolean;
-  clientSecret?: string;
 }>();
 
 const emit = defineEmits<{
@@ -19,25 +18,58 @@ const emit = defineEmits<{
 
 const { getSetupIntent, addPaymentMethod } = useSubscription();
 
-const cardElementRef = ref<HTMLDivElement>();
+const paymentElementRef = ref<HTMLDivElement>();
 const stripe = ref<any>(null);
-const cardElement = ref<any>(null);
-const cardComplete = ref(false);
+const elements = ref<any>(null);
+const paymentElement = ref<any>(null);
+const paymentComplete = ref(false);
 const processing = ref(false);
 const errorMessage = ref('');
+const clientSecret = ref<string | null>(null);
+const supportedPaymentMethods = ref<string[]>([]);
 
 const isOpen = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 });
 
-// Initialize Stripe Elements
+// Initialize Stripe on mount
 onMounted(async () => {
   if (typeof window !== 'undefined' && window.Stripe) {
     const config = useRuntimeConfig();
     stripe.value = window.Stripe(config.public.stripePublishableKey);
+  } else {
+    console.error('Stripe.js not loaded! Make sure to include the Stripe script in your app.');
+  }
+});
+
+// Initialize Payment Element when modal opens
+watch(isOpen, async (open) => {
+  if (open && stripe.value) {
+    await initializePaymentElement();
+  }
+}, { immediate: true });
+
+const initializePaymentElement = async () => {
+  if (!stripe.value) return;
+
+  processing.value = true;
+  errorMessage.value = '';
+
+  try {
+    // Get setup intent from backend with supported payment methods
+    const setupData = await getSetupIntent('BRL');
     
-    const elements = stripe.value.elements({
+    if (!setupData?.client_secret) {
+      throw new Error('Não foi possível iniciar o processo de pagamento');
+    }
+
+    clientSecret.value = setupData.client_secret;
+    supportedPaymentMethods.value = setupData.payment_method_types || ['card'];
+
+    // Create Elements instance with the client secret
+    elements.value = stripe.value.elements({
+      clientSecret: clientSecret.value,
       locale: 'pt-BR',
       appearance: {
         theme: 'stripe',
@@ -50,75 +82,80 @@ onMounted(async () => {
           spacingUnit: '4px',
           borderRadius: '8px',
         },
-      },
-    });
-    
-    cardElement.value = elements.create('card', {
-      style: {
-        base: {
-          fontSize: '16px',
-          color: '#1f2937',
-          '::placeholder': {
-            color: '#9ca3af',
+        rules: {
+          '.Label': {
+            color: '#374151',
+            fontWeight: '500',
+            fontSize: '14px',
           },
         },
-        invalid: {
-          color: '#ef4444',
-          iconColor: '#ef4444',
+      },
+    });
+
+    // Create Payment Element (supports multiple payment methods automatically)
+    paymentElement.value = elements.value.create('payment', {
+      layout: {
+        type: 'tabs',
+        defaultCollapsed: false,
+      },
+      paymentMethodOrder: supportedPaymentMethods.value,
+      fields: {
+        billingDetails: {
+          address: {
+            country: 'auto',
+          },
         },
       },
-      hidePostalCode: true,
     });
-  }
-});
 
-// Mount card element when modal opens
-watch(isOpen, (open) => {
-  if (open && cardElement.value && cardElementRef.value) {
-    nextTick(() => {
-      cardElement.value.mount(cardElementRef.value);
-      cardElement.value.on('change', (event: any) => {
-        cardComplete.value = event.complete;
-        errorMessage.value = event.error?.message || '';
-      });
-    });
+    // Mount the payment element after DOM is ready
+    await nextTick();
+    setTimeout(() => {
+      if (paymentElementRef.value && paymentElement.value) {
+        paymentElement.value.mount(paymentElementRef.value);
+        
+        paymentElement.value.on('change', (event: any) => {
+          paymentComplete.value = event.complete;
+          errorMessage.value = event.error?.message || '';
+        });
+      }
+    }, 100);
+  } catch (error: any) {
+    errorMessage.value = error.message || 'Erro ao inicializar formulário de pagamento';
+  } finally {
+    processing.value = false;
   }
-});
+};
 
 const handleSubmit = async () => {
-  if (!stripe.value || !cardElement.value) return;
+  if (!stripe.value || !elements.value) return;
   
   processing.value = true;
   errorMessage.value = '';
   
   try {
-    // Create setup intent from backend
-    const clientSecret = await getSetupIntent();
-    
-    if (!clientSecret) {
-      throw new Error('Não foi possível iniciar o processo de adição do cartão');
-    }
-    
-    // Confirm card setup with Stripe
-    const { setupIntent, error } = await stripe.value.confirmCardSetup(
-      clientSecret,
-      {
-        payment_method: {
-          card: cardElement.value,
-        },
-      }
-    );
+    // Confirm setup using Payment Element
+    const { setupIntent, error } = await stripe.value.confirmSetup({
+      elements: elements.value,
+      redirect: 'if_required',
+      confirmParams: {
+        return_url: `${window.location.origin}/billing?setup_complete=true`,
+      },
+    });
     
     if (error) {
-      throw new Error(error.message || 'Erro ao adicionar cartão');
+      throw new Error(error.message || 'Erro ao adicionar forma de pagamento');
     }
     
-    if (setupIntent.status === 'succeeded') {
+    if (setupIntent && setupIntent.status === 'succeeded') {
       // Add payment method to backend
       await addPaymentMethod(setupIntent.payment_method, true);
       emit('success', setupIntent.payment_method);
-      isOpen.value = false;
-      cardElement.value.clear();
+      handleClose();
+    } else if (setupIntent && setupIntent.status === 'processing') {
+      // Some payment methods (like bank debits) may take time to process
+      emit('success', setupIntent.payment_method);
+      handleClose();
     }
   } catch (error: any) {
     errorMessage.value = error.message || 'Erro ao adicionar forma de pagamento';
@@ -129,12 +166,31 @@ const handleSubmit = async () => {
 };
 
 const handleClose = () => {
-  if (cardElement.value) {
-    cardElement.value.clear();
+  if (paymentElement.value) {
+    paymentElement.value.destroy();
+    paymentElement.value = null;
   }
+  elements.value = null;
+  clientSecret.value = null;
+  paymentComplete.value = false;
   errorMessage.value = '';
   isOpen.value = false;
 };
+
+// Get label for supported payment methods
+const paymentMethodsLabel = computed(() => {
+  const methodNames: Record<string, string> = {
+    card: 'Cartão de Crédito/Débito',
+    boleto: 'Boleto Bancário',
+    us_bank_account: 'Conta Bancária (ACH)',
+    sepa_debit: 'Débito SEPA',
+    bacs_debit: 'Débito Bacs',
+  };
+  
+  return supportedPaymentMethods.value
+    .map(m => methodNames[m] || m)
+    .join(', ');
+});
 </script>
 
 <template>
@@ -156,18 +212,26 @@ const handleClose = () => {
 
       <div class="space-y-6">
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          Adicione um cartão de crédito ou débito para realizar pagamentos.
+          Adicione uma forma de pagamento para realizar suas assinaturas e pagamentos.
         </p>
 
-        <!-- Stripe Card Element Container -->
+        <!-- Supported Payment Methods Info -->
+        <div v-if="supportedPaymentMethods.length > 1" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+          <UIcon name="i-heroicons-information-circle" class="w-5 h-5" />
+          <span>Formas de pagamento disponíveis: {{ paymentMethodsLabel }}</span>
+        </div>
+
+        <!-- Stripe Payment Element Container -->
         <div class="space-y-2">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Dados do Cartão
-          </label>
           <div
-            ref="cardElementRef"
-            class="p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+            ref="paymentElementRef"
+            class="min-h-[200px] p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
           />
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="processing && !paymentElement" class="flex justify-center py-4">
+          <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 animate-spin text-primary-500" />
         </div>
 
         <!-- Error Message -->
@@ -198,10 +262,10 @@ const handleClose = () => {
           <UButton
             color="primary"
             :loading="processing"
-            :disabled="!cardComplete || processing"
+            :disabled="!paymentComplete || processing"
             @click="handleSubmit"
           >
-            Adicionar Cartão
+            Adicionar Forma de Pagamento
           </UButton>
         </div>
       </template>
