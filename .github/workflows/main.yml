@@ -24,4 +24,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: josinho/node:22-nuxt
+          tags: josinho/node:22-gerency-admin-panel

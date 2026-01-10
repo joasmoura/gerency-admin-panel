@@ -1,15 +1,7 @@
 services:
   admin_panel:
-    image: josinho/node:22-nuxt
-    # build:
-    #   context: .
+    image: josinho/node:22-gerency-admin-panel
     working_dir: /app
-    # volumes:
-    #   - gerency_panel:/app
-    # ports:
-    #   - 3001:3001
-    # expose:
-    #   - 3001
     networks:
       - web
     labels:
@@ -41,11 +33,6 @@ services:
       - NODE_ENV=production
       - PORT=3002 # Porta padrão do Nuxt.js é 3000, mas pode ser alterada conforme necessário
       - NUXT_PUBLIC_API_BASE=https://api.gerency.com/api
-
-# volumes:
-#   gerency_panel:
-#     driver: local
-#     name: gerency_panel
 
 networks:
   web:
