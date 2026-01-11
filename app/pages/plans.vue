@@ -1,14 +1,23 @@
 <script setup lang="ts">
-import type { Plan, PlanPrice } from '~/composables/useAdminApi';
+import type { Plan, PlanPrice, CreatePlanInput } from '~/composables/useAdminApi';
 
 const toast = useToast()
-const { fetchPlans, createPlan, updatePlan, deactivatePlan, addPlanPrice, loading } = useAdminApi()
+const { fetchPlans, createPlan, updatePlan, deactivatePlan, addPlanPrice, deactivatePlanPrice, loading } = useAdminApi()
 
 const plans = ref<Plan[]>([])
 const showCreateModal = ref(false)
 const showPriceModal = ref(false)
 const editingPlan = ref<Plan | null>(null)
 const selectedPlanForPrice = ref<Plan | null>(null)
+
+// Price type for the form
+interface FormPrice {
+  uuid?: string;
+  amount: number;
+  interval: 'monthly' | 'yearly';
+  currency: string;
+  is_existing?: boolean;
+}
 
 // Form data
 const planForm = ref({
@@ -23,7 +32,7 @@ const planForm = ref({
   is_featured: false,
   is_active: true,
   sort_order: 0,
-  active_prices: [] as { amount: number; interval: 'monthly' | 'yearly'; currency: string }[],
+  active_prices: [] as FormPrice[],
 })
 
 const priceForm = ref({
@@ -85,6 +94,10 @@ const openCreateModal = () => {
 
 const openEditModal = (plan: Plan) => {
   editingPlan.value = plan
+  
+  // Get prices from active_prices (backend returns this) or prices
+  const existingPrices = plan.active_prices || plan.prices || []
+  
   planForm.value = {
     name: plan.name,
     slug: plan.slug,
@@ -92,27 +105,72 @@ const openEditModal = (plan: Plan) => {
     max_users: plan.max_users,
     max_projects: plan.max_projects,
     max_storage_gb: plan.max_storage_gb,
-    features: plan.features || [],
+    features: [...(plan.features || [])],
     trial_days: plan.trial_days,
     is_featured: plan.is_featured,
     is_active: plan.is_active,
     sort_order: plan.sort_order || 0,
-    active_prices: [],
+    // Map existing prices to form format (amount in cents needs to be converted to display value)
+    active_prices: existingPrices.map(p => ({
+      uuid: p.uuid,
+      amount: p.amount / 100, // Convert from cents to display value
+      interval: p.interval,
+      currency: p.currency,
+      is_existing: true, // Flag to identify existing prices
+    })),
   }
   showCreateModal.value = true
 }
 
 const handleSubmitPlan = async () => {
   try {
+    // Separate new prices from existing prices
+    const newPrices = planForm.value.active_prices.filter(p => !p.is_existing)
+    
+    // Prepare plan data (exclude prices for update - they're handled separately)
+    const planData = {
+      name: planForm.value.name,
+      slug: planForm.value.slug,
+      description: planForm.value.description,
+      max_users: planForm.value.max_users,
+      max_projects: planForm.value.max_projects,
+      max_storage_gb: planForm.value.max_storage_gb,
+      features: planForm.value.features,
+      trial_days: planForm.value.trial_days,
+      is_featured: planForm.value.is_featured,
+      is_active: planForm.value.is_active,
+      sort_order: planForm.value.sort_order,
+    }
+    
     if (editingPlan.value) {
-      await updatePlan(editingPlan.value.uuid, planForm.value)
+      // Update plan
+      await updatePlan(editingPlan.value.uuid, planData)
+      
+      // Add new prices if any
+      for (const price of newPrices) {
+        await addPlanPrice(editingPlan.value.uuid, {
+          amount: Math.round(price.amount * 100), // Convert to cents
+          interval: price.interval,
+          currency: price.currency,
+        })
+      }
+      
       toast.add({
         title: 'Sucesso',
         description: 'Plano atualizado com sucesso',
         color: 'success',
       })
     } else {
-      await createPlan(planForm.value)
+      // For new plans, include prices in creation
+      const createData: CreatePlanInput = {
+        ...planData,
+        prices: newPrices.map(p => ({
+          amount: Math.round(p.amount * 100), // Convert to cents
+          interval: p.interval,
+          currency: p.currency,
+        })),
+      }
+      await createPlan(createData)
       toast.add({
         title: 'Sucesso',
         description: 'Plano criado com sucesso',
@@ -197,26 +255,79 @@ const removeFeature = (index: number) => {
 }
 
 const addPlanPriceToForm = () => {
-  if (newPlanPrice.value.amount > 0) {
-    planForm.value.active_prices.push({
-      amount: newPlanPrice.value.amount,
-      interval: newPlanPrice.value.interval,
-      currency: newPlanPrice.value.currency,
+  if (newPlanPrice.value.amount <= 0) {
+    toast.add({
+      title: 'Atenção',
+      description: 'Informe um valor maior que zero',
+      color: 'warning',
     })
-    newPlanPrice.value = {
-      amount: 0,
-      interval: 'monthly',
-      currency: 'BRL',
-    }
+    return
+  }
+  
+  // Check if price with same currency and interval already exists
+  const exists = planForm.value.active_prices.some(
+    p => p.currency === newPlanPrice.value.currency && p.interval === newPlanPrice.value.interval
+  )
+  
+  if (exists) {
+    toast.add({
+      title: 'Atenção',
+      description: `Já existe um preço ${newPlanPrice.value.interval === 'monthly' ? 'mensal' : 'anual'} em ${newPlanPrice.value.currency}`,
+      color: 'warning',
+    })
+    return
+  }
+  
+  planForm.value.active_prices.push({
+    amount: newPlanPrice.value.amount,
+    interval: newPlanPrice.value.interval,
+    currency: newPlanPrice.value.currency,
+    is_existing: false,
+  })
+  newPlanPrice.value = {
+    amount: 0,
+    interval: 'monthly',
+    currency: 'BRL',
   }
 }
 
-const removePlanPriceFromForm = (index: number) => {
+const removePlanPriceFromForm = async (index: number) => {
+  const price = planForm.value.active_prices[index]
+  if (!price) return
+  
+  // If it's an existing price with UUID, confirm and deactivate from API
+  if (price.is_existing && price.uuid) {
+    if (!confirm('Deseja realmente remover este preço? Esta ação não pode ser desfeita.')) {
+      return
+    }
+    
+    try {
+      await deactivatePlanPrice(price.uuid)
+      toast.add({
+        title: 'Sucesso',
+        description: 'Preço removido com sucesso',
+        color: 'success',
+      })
+    } catch (err: any) {
+      toast.add({
+        title: 'Erro',
+        description: err.data?.message || 'Erro ao remover preço',
+        color: 'error',
+      })
+      return
+    }
+  }
+  
   planForm.value.active_prices.splice(index, 1)
 }
 
 const formatPrice = (amount: number, currency: string = 'BRL') => {
-  const locale = currency === 'USD' ? 'en-US' : 'pt-BR'
+  const localeMap: Record<string, string> = {
+    'BRL': 'pt-BR',
+    'USD': 'en-US',
+    'EUR': 'de-DE',
+  }
+  const locale = localeMap[currency] || 'pt-BR'
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
@@ -226,6 +337,7 @@ const formatPrice = (amount: number, currency: string = 'BRL') => {
 const currencyOptions = [
   { label: 'Real (R$)', value: 'BRL' },
   { label: 'Dólar ($)', value: 'USD' },
+  { label: 'Euro (€)', value: 'EUR' },
 ]
 </script>
 
@@ -475,10 +587,18 @@ const currencyOptions = [
                 <div v-if="planForm.active_prices.length > 0" class="space-y-2">
                   <div 
                     v-for="(price, i) in planForm.active_prices" 
-                    :key="i" 
-                    class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                    :key="price.uuid || i" 
+                    :class="[
+                      'flex items-center justify-between p-2 rounded-lg',
+                      price.is_existing 
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' 
+                        : 'bg-gray-50 dark:bg-gray-800'
+                    ]"
                   >
                     <div class="flex items-center gap-2">
+                      <UBadge v-if="price.is_existing" color="primary" variant="subtle" size="xs">
+                        Existente
+                      </UBadge>
                       <UBadge color="neutral" variant="subtle">{{ price.currency }}</UBadge>
                       <span class="font-medium">{{ formatPrice(price.amount * 100, price.currency) }}</span>
                       <span class="text-gray-500">/ {{ price.interval === 'monthly' ? 'mês' : 'ano' }}</span>
@@ -489,6 +609,7 @@ const currencyOptions = [
                       variant="ghost" 
                       size="xs"
                       icon="i-lucide-trash-2"
+                      :loading="loading"
                       @click="removePlanPriceFromForm(i)"
                     />
                   </div>

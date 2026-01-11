@@ -39,6 +39,7 @@ export interface Plan {
   is_featured: boolean;
   sort_order: number;
   prices: PlanPrice[];
+  active_prices?: PlanPrice[];
 }
 
 export interface PlanPrice {
@@ -51,6 +52,30 @@ export interface PlanPrice {
   interval: 'monthly' | 'yearly';
   discount_percentage: number;
   is_active: boolean;
+}
+
+// Type for creating/updating prices (without server-generated fields)
+export interface PlanPriceInput {
+  amount: number;
+  currency: string;
+  interval: 'monthly' | 'yearly';
+  discount_percentage?: number;
+}
+
+// Type for creating a new plan
+export interface CreatePlanInput {
+  name: string;
+  slug?: string;
+  description?: string;
+  max_users?: number;
+  max_projects?: number;
+  max_storage_gb?: number;
+  features?: string[];
+  trial_days?: number;
+  is_featured?: boolean;
+  is_active?: boolean;
+  sort_order?: number;
+  prices?: PlanPriceInput[];
 }
 
 export interface TenantListItem {
@@ -286,7 +311,7 @@ export function useAdminApi() {
     }
   };
 
-  const createPlan = async (data: Partial<Plan> & { prices?: Partial<PlanPrice>[] }) => {
+  const createPlan = async (data: CreatePlanInput) => {
     loading.value = true;
     error.value = null;
     
@@ -352,6 +377,23 @@ export function useAdminApi() {
         body: data,
       });
       return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const deactivatePlanPrice = async (priceUuid: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      await $fetch(`${baseURL}/admin/plans/prices/${priceUuid}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
     } catch (err) {
       error.value = err;
       throw err;
@@ -796,6 +838,7 @@ export function useAdminApi() {
     updatePlan,
     deactivatePlan,
     addPlanPrice,
+    deactivatePlanPrice,
     // Tenants
     fetchTenants,
     fetchTenant,
