@@ -14,6 +14,7 @@ const posts = ref<BlogPost[]>([])
 const meta = ref<any>({})
 const searchQuery = ref('')
 const statusFilter = ref<string | null>(null)
+const localeFilter = ref<string | null>(null)
 
 // Load posts
 onMounted(async () => {
@@ -25,6 +26,7 @@ const loadPosts = async () => {
     const response = await fetchBlogPosts({
       search: searchQuery.value || undefined,
       status: statusFilter.value || undefined,
+      locale: localeFilter.value || undefined,
       per_page: 50,
     })
     posts.value = response.data
@@ -140,12 +142,32 @@ watch(statusFilter, () => {
   loadPosts()
 })
 
+watch(localeFilter, () => {
+  loadPosts()
+})
+
 const statusOptions = [
   { label: 'Todos', value: null },
   { label: 'Rascunho', value: 'draft' },
   { label: 'Publicado', value: 'published' },
   { label: 'Arquivado', value: 'archived' },
 ]
+
+const localeOptions = [
+  { label: 'Todos os idiomas', value: null },
+  { label: 'Português (Brasil)', value: 'pt-BR' },
+  { label: 'English', value: 'en' },
+  { label: 'Español', value: 'es' },
+]
+
+const getLocaleLabel = (locale: string) => {
+  const labels: Record<string, string> = {
+    'pt-BR': 'PT-BR',
+    'en': 'EN',
+    'es': 'ES',
+  }
+  return labels[locale] || locale
+}
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -212,6 +234,13 @@ const formatDate = (dateString: string | null) => {
         class="w-40"
         placeholder="Status"
       />
+      <USelect
+        v-model="localeFilter"
+        :items="localeOptions"
+        value-key="value"
+        class="w-48"
+        placeholder="Idioma"
+      />
     </div>
 
     <!-- Loading -->
@@ -240,6 +269,7 @@ const formatDate = (dateString: string | null) => {
           <tr class="border-b border-gray-200 dark:border-gray-700">
             <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Título</th>
             <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Categoria</th>
+            <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Idioma</th>
             <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Status</th>
             <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Autor</th>
             <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Publicado em</th>
@@ -280,6 +310,11 @@ const formatDate = (dateString: string | null) => {
                 {{ post.category }}
               </span>
               <span v-else class="text-sm text-gray-400">-</span>
+            </td>
+            <td class="py-3 px-4">
+              <UBadge color="info" variant="subtle" size="sm">
+                {{ getLocaleLabel(post.locale) }}
+              </UBadge>
             </td>
             <td class="py-3 px-4">
               <UBadge :color="getStatusColor(post.status)" variant="subtle" size="sm">

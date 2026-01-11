@@ -171,6 +171,7 @@ export interface BlogPost {
   sort_order: number;
   meta_title: string | null;
   meta_description: string | null;
+  locale: string;
   views_count: number;
   reading_time?: number;
   published_at: string | null;

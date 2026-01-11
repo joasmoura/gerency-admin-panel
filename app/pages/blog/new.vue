@@ -17,6 +17,7 @@ const form = ref({
   sort_order: 0,
   meta_title: '',
   meta_description: '',
+  locale: 'pt-BR',
   published_at: '',
 })
 
@@ -54,6 +55,12 @@ const statusFormOptions = [
   { label: 'Rascunho', value: 'draft' },
   { label: 'Publicado', value: 'published' },
   { label: 'Arquivado', value: 'archived' },
+]
+
+const localeOptions = [
+  { label: 'Português (Brasil)', value: 'pt-BR' },
+  { label: 'English', value: 'en' },
+  { label: 'Español', value: 'es' },
 ]
 </script>
 
@@ -172,11 +179,19 @@ const statusFormOptions = [
         </template>
 
         <div class="space-y-4">
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-4 gap-4">
             <UFormField label="Status" name="status">
               <USelect 
                 v-model="form.status" 
                 :items="statusFormOptions"
+                value-key="value"
+                class="w-full"
+              />
+            </UFormField>
+            <UFormField label="Idioma" name="locale">
+              <USelect 
+                v-model="form.locale" 
+                :items="localeOptions"
                 value-key="value"
                 class="w-full"
               />
