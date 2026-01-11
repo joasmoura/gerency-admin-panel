@@ -128,7 +128,7 @@ const userMenuItems = computed(() => [[
       </header>
 
       <!-- Main Content -->
-      <main class="flex-1 p-6 bg-gray-50 dark:bg-gray-900">
+      <main class="flex-1 p-6 bg-gray-50 dark:bg-gray-900 overflow-auto">
         <slot />
       </main>
     </div>

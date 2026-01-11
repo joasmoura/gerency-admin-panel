@@ -2,7 +2,7 @@
 import { useAdminAuthStore } from '~/stores/adminAuthStore';
 
 definePageMeta({
-  layout: 'generic',
+  layout: 'auth',
   middleware: [],
 });
 
@@ -57,7 +57,7 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-900 px-4">
+  <div class="min-h-screen flex items-center justify-center bg-gray-900 ">
     <div class="max-w-md w-full">
       <UCard class="bg-gray-800 border-gray-700">
         <div class="text-center mb-8">

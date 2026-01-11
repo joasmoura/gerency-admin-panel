@@ -2,9 +2,9 @@
 import type { BlogPost } from '~/composables/useAdminApi';
 
 const toast = useToast()
+const router = useRouter()
 const { 
   fetchBlogPosts, 
-  createBlogPost, 
   updateBlogPost, 
   deleteBlogPost, 
   loading 
@@ -12,29 +12,8 @@ const {
 
 const posts = ref<BlogPost[]>([])
 const meta = ref<any>({})
-const showModal = ref(false)
-const editingPost = ref<BlogPost | null>(null)
 const searchQuery = ref('')
-const statusFilter = ref<string>('')
-
-// Form data
-const form = ref({
-  title: '',
-  slug: '',
-  excerpt: '',
-  content: '',
-  featured_image: '',
-  category: '',
-  tags: [] as string[],
-  status: 'draft' as 'draft' | 'published' | 'archived',
-  is_featured: false,
-  sort_order: 0,
-  meta_title: '',
-  meta_description: '',
-  published_at: '',
-})
-
-const tagsInput = ref('')
+const statusFilter = ref<string | null>(null)
 
 // Load posts
 onMounted(async () => {
@@ -60,84 +39,12 @@ const loadPosts = async () => {
   }
 }
 
-const resetForm = () => {
-  form.value = {
-    title: '',
-    slug: '',
-    excerpt: '',
-    content: '',
-    featured_image: '',
-    category: '',
-    tags: [],
-    status: 'draft',
-    is_featured: false,
-    sort_order: 0,
-    meta_title: '',
-    meta_description: '',
-    published_at: '',
-  }
-  tagsInput.value = ''
-  editingPost.value = null
+const openCreatePage = () => {
+  router.push('/blog/new')
 }
 
-const openCreateModal = () => {
-  resetForm()
-  showModal.value = true
-}
-
-const openEditModal = (post: BlogPost) => {
-  editingPost.value = post
-  form.value = {
-    title: post.title,
-    slug: post.slug,
-    excerpt: post.excerpt || '',
-    content: post.content || '',
-    featured_image: post.featured_image || '',
-    category: post.category || '',
-    tags: post.tags || [],
-    status: post.status,
-    is_featured: post.is_featured,
-    sort_order: post.sort_order,
-    meta_title: post.meta_title || '',
-    meta_description: post.meta_description || '',
-    published_at: post.published_at ? post.published_at.slice(0, 16) : '',
-  }
-  tagsInput.value = (post.tags || []).join(', ')
-  showModal.value = true
-}
-
-const handleSubmit = async () => {
-  // Parse tags from input
-  form.value.tags = tagsInput.value
-    .split(',')
-    .map(tag => tag.trim())
-    .filter(tag => tag.length > 0)
-
-  try {
-    if (editingPost.value) {
-      await updateBlogPost(editingPost.value.uuid, form.value)
-      toast.add({
-        title: 'Sucesso',
-        description: 'Post atualizado com sucesso',
-        color: 'success',
-      })
-    } else {
-      await createBlogPost(form.value)
-      toast.add({
-        title: 'Sucesso',
-        description: 'Post criado com sucesso',
-        color: 'success',
-      })
-    }
-    showModal.value = false
-    await loadPosts()
-  } catch (err: any) {
-    toast.add({
-      title: 'Erro',
-      description: err.data?.message || 'Erro ao salvar post',
-      color: 'error',
-    })
-  }
+const openEditPage = (post: BlogPost) => {
+  router.push(`/blog/${post.uuid}`)
 }
 
 const handleDelete = async (post: BlogPost) => {
@@ -234,13 +141,7 @@ watch(statusFilter, () => {
 })
 
 const statusOptions = [
-  { label: 'Todos', value: '' },
-  { label: 'Rascunho', value: 'draft' },
-  { label: 'Publicado', value: 'published' },
-  { label: 'Arquivado', value: 'archived' },
-]
-
-const statusFormOptions = [
+  { label: 'Todos', value: null },
   { label: 'Rascunho', value: 'draft' },
   { label: 'Publicado', value: 'published' },
   { label: 'Arquivado', value: 'archived' },
@@ -290,7 +191,7 @@ const formatDate = (dateString: string | null) => {
       <UButton
         color="primary"
         icon="i-lucide-plus"
-        @click="openCreateModal"
+        @click="openCreatePage"
       >
         Novo Post
       </UButton>
@@ -327,7 +228,7 @@ const formatDate = (dateString: string | null) => {
       <p class="text-gray-500 dark:text-gray-400 mb-4">
         Crie seu primeiro post para o blog
       </p>
-      <UButton color="primary" @click="openCreateModal">
+      <UButton color="primary" @click="openCreatePage">
         Criar Post
       </UButton>
     </div>
@@ -350,7 +251,8 @@ const formatDate = (dateString: string | null) => {
           <tr 
             v-for="post in posts" 
             :key="post.uuid"
-            class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer"
+            @click="openEditPage(post)"
           >
             <td class="py-3 px-4">
               <div class="flex items-center gap-3">
@@ -399,14 +301,14 @@ const formatDate = (dateString: string | null) => {
                 {{ post.views_count }}
               </span>
             </td>
-            <td class="py-3 px-4">
+            <td class="py-3 px-4" @click.stop>
               <div class="flex items-center justify-end gap-1">
                 <UButton
                   color="neutral"
                   variant="ghost"
                   size="xs"
                   icon="i-lucide-pencil"
-                  @click="openEditModal(post)"
+                  @click="openEditPage(post)"
                 />
                 <UButton
                   v-if="post.status === 'draft'"
@@ -446,122 +348,5 @@ const formatDate = (dateString: string | null) => {
         </tbody>
       </table>
     </div>
-
-    <!-- Create/Edit Modal -->
-    <UModal v-model:open="showModal">
-      <template #content>
-        <UCard class="max-w-4xl">
-          <template #header>
-            <div class="flex items-center justify-between">
-              <h3 class="text-lg font-semibold">
-                {{ editingPost ? 'Editar Post' : 'Novo Post' }}
-              </h3>
-              <UButton
-                color="neutral"
-                variant="ghost"
-                icon="i-lucide-x"
-                @click="showModal = false"
-              />
-            </div>
-          </template>
-
-          <form @submit.prevent="handleSubmit" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <UFormField label="Título" name="title" required class="col-span-2">
-                <UInput v-model="form.title" placeholder="Título do post" />
-              </UFormField>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <UFormField label="Slug" name="slug">
-                <UInput v-model="form.slug" placeholder="url-do-post (auto-gerado)" />
-              </UFormField>
-              <UFormField label="Categoria" name="category">
-                <UInput v-model="form.category" placeholder="Ex: Produtividade" />
-              </UFormField>
-            </div>
-
-            <UFormField label="Resumo" name="excerpt">
-              <UTextarea 
-                v-model="form.excerpt" 
-                placeholder="Breve descrição do post..." 
-                :rows="2"
-              />
-            </UFormField>
-
-            <UFormField label="Conteúdo" name="content">
-              <UTextarea 
-                v-model="form.content" 
-                placeholder="Conteúdo do post (suporta HTML)..." 
-                :rows="10"
-              />
-            </UFormField>
-
-            <div class="grid grid-cols-2 gap-4">
-              <UFormField label="Imagem Destaque (URL)" name="featured_image">
-                <UInput v-model="form.featured_image" placeholder="https://..." />
-              </UFormField>
-              <UFormField label="Tags" name="tags">
-                <UInput v-model="tagsInput" placeholder="tag1, tag2, tag3" />
-              </UFormField>
-            </div>
-
-            <div class="grid grid-cols-3 gap-4">
-              <UFormField label="Status" name="status">
-                <USelect 
-                  v-model="form.status" 
-                  :items="statusFormOptions"
-                  value-key="value"
-                />
-              </UFormField>
-              <UFormField label="Ordem" name="sort_order">
-                <UInput v-model.number="form.sort_order" type="number" min="0" />
-              </UFormField>
-              <UFormField label="Data de Publicação" name="published_at">
-                <UInput v-model="form.published_at" type="datetime-local" />
-              </UFormField>
-            </div>
-
-            <!-- SEO Fields -->
-            <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-              <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">SEO</h4>
-              <div class="grid grid-cols-1 gap-4">
-                <UFormField label="Meta Título" name="meta_title">
-                  <UInput v-model="form.meta_title" placeholder="Título para SEO" />
-                </UFormField>
-                <UFormField label="Meta Descrição" name="meta_description">
-                  <UTextarea 
-                    v-model="form.meta_description" 
-                    placeholder="Descrição para SEO..." 
-                    :rows="2"
-                  />
-                </UFormField>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-6">
-              <UCheckbox v-model="form.is_featured" label="Post em Destaque" />
-            </div>
-
-            <div class="flex justify-end gap-2 pt-4">
-              <UButton
-                color="neutral"
-                variant="ghost"
-                @click="showModal = false"
-              >
-                Cancelar
-              </UButton>
-              <UButton
-                type="submit"
-                color="primary"
-                :loading="loading"
-              >
-                {{ editingPost ? 'Atualizar' : 'Criar' }}
-              </UButton>
-            </div>
-          </form>
-        </UCard>
-      </template>
-    </UModal>
   </div>
 </template>
