@@ -472,162 +472,161 @@ const currencyOptions = [
     </div>
 
     <!-- Create/Edit Plan Modal -->
-    <UModal v-model:open="showCreateModal">
-      <template #content>
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between">
-              <h3 class="text-lg font-semibold">
-                {{ editingPlan ? 'Editar Plano' : 'Novo Plano' }}
-              </h3>
-              <UButton
-                color="neutral"
-                variant="ghost"
-                icon="i-lucide-x"
-                @click="showCreateModal = false"
-              />
-            </div>
-          </template>
+    <UModal :scrollable="true" :title="editingPlan ? 'Editar Plano' : 'Novo Plano'" v-model:open="showCreateModal">
+      <template #body>
+        <!-- <template #header>
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold">
+              {{ editingPlan ? 'Editar Plano' : 'Novo Plano' }}
+            </h3>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-lucide-x"
+              @click="showCreateModal = false"
+            />
+          </div>
+        </template> -->
 
-          <form @submit.prevent="handleSubmitPlan" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <UFormField label="Nome" name="name" required>
-                <UInput v-model="planForm.name" placeholder="Plano Pro" />
-              </UFormField>
-              <UFormField label="Slug" name="slug">
-                <UInput v-model="planForm.slug" placeholder="pro" />
-              </UFormField>
-            </div>
-
-            <UFormField label="Descrição" name="description">
-              <UTextarea v-model="planForm.description" placeholder="Descrição do plano..." />
+        <form @submit.prevent="handleSubmitPlan" class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <UFormField label="Nome" name="name" required>
+              <UInput v-model="planForm.name" placeholder="Plano Pro" />
             </UFormField>
+            <UFormField label="Slug" name="slug">
+              <UInput v-model="planForm.slug" placeholder="pro" />
+            </UFormField>
+          </div>
 
-            <div class="grid grid-cols-3 gap-4">
-              <UFormField label="Máx. Usuários" name="max_users">
-                <UInput v-model.number="planForm.max_users" type="number" min="1" />
-              </UFormField>
-              <UFormField label="Máx. Projetos" name="max_projects">
-                <UInput v-model.number="planForm.max_projects" type="number" min="1" />
-              </UFormField>
-              <UFormField label="Armazenamento (GB)" name="max_storage_gb">
-                <UInput v-model.number="planForm.max_storage_gb" type="number" min="1" />
-              </UFormField>
-            </div>
+          <UFormField label="Descrição" name="description">
+            <UTextarea v-model="planForm.description" placeholder="Descrição do plano..." class="w-full"/>
+          </UFormField>
 
-            <div class="grid grid-cols-2 gap-4">
-              <UFormField label="Dias de Trial" name="trial_days">
-                <UInput v-model.number="planForm.trial_days" type="number" min="0" />
-              </UFormField>
-              <UFormField label="Ordem de Exibição" name="sort_order">
-                <UInput v-model.number="planForm.sort_order" type="number" min="0" />
-              </UFormField>
-            </div>
+          <div class="grid grid-cols-3 gap-4">
+            <UFormField label="Máx. Usuários" name="max_users">
+              <UInput v-model.number="planForm.max_users" type="number" min="1" />
+            </UFormField>
+            <UFormField label="Máx. Projetos" name="max_projects">
+              <UInput v-model.number="planForm.max_projects" type="number" min="1" />
+            </UFormField>
+            <UFormField label="Armazenamento (GB)" name="max_storage_gb">
+              <UInput v-model.number="planForm.max_storage_gb" type="number" min="1" />
+            </UFormField>
+          </div>
 
-            <div class="flex items-center gap-4">
-              <UCheckbox v-model="planForm.is_featured" label="Plano em destaque" />
-              <UCheckbox v-model="planForm.is_active" label="Plano ativo" />
-            </div>
+          <div class="grid grid-cols-2 gap-4">
+            <UFormField label="Dias de Trial" name="trial_days">
+              <UInput v-model.number="planForm.trial_days" type="number" min="0" />
+            </UFormField>
+            <UFormField label="Ordem de Exibição" name="sort_order">
+              <UInput v-model.number="planForm.sort_order" type="number" min="0" />
+            </UFormField>
+          </div>
 
-            <!-- Features -->
-            <UFormField label="Recursos" name="features">
-              <div class="space-y-2">
-                <div class="flex gap-2">
-                  <UInput 
-                    v-model="newFeature" 
-                    placeholder="Novo recurso..."
-                    @keyup.enter.prevent="addFeature"
-                  />
-                  <UButton type="button" color="neutral" @click="addFeature">
-                    <UIcon name="i-lucide-plus" />
-                  </UButton>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  <UBadge
-                    v-for="(feature, i) in planForm.features"
-                    :key="i"
-                    color="neutral"
-                    class="cursor-pointer"
-                    @click="removeFeature(i)"
-                  >
-                    {{ feature }}
-                    <UIcon name="i-lucide-x" class="w-3 h-3 ml-1" />
-                  </UBadge>
-                </div>
+          <div class="flex items-center gap-4">
+            <UCheckbox v-model="planForm.is_featured" label="Plano em destaque" />
+            <UCheckbox v-model="planForm.is_active" label="Plano ativo" />
+          </div>
+
+          <!-- Features -->
+          <UFormField label="Recursos" name="features">
+            <div class="space-y-2">
+              <div class="flex gap-2">
+                <UInput 
+                  v-model="newFeature" 
+                  placeholder="Novo recurso..."
+                  @keyup.enter.prevent="addFeature"
+                />
+                <UButton type="button" color="neutral" @click="addFeature">
+                  <UIcon name="i-lucide-plus" />
+                </UButton>
               </div>
-            </UFormField>
+              <div class="flex flex-wrap gap-2">
+                <UBadge
+                  v-for="(feature, i) in planForm.features"
+                  :key="i"
+                  color="neutral"
+                  class="cursor-pointer"
+                  @click="removeFeature(i)"
+                >
+                  {{ feature }}
+                  <UIcon name="i-lucide-x" class="w-3 h-3 ml-1" />
+                </UBadge>
+              </div>
+            </div>
+          </UFormField>
 
-            <!-- Prices -->
-            <UFormField label="Preços" name="prices">
-              <div class="space-y-3">
-                <div class="grid grid-cols-4 gap-2">
-                  <USelect
-                    v-model="newPlanPrice.currency"
-                    :items="currencyOptions"
-                    placeholder="Moeda"
-                  />
-                  <UInput 
-                    v-model.number="newPlanPrice.amount" 
-                    type="number" 
-                    min="0" 
-                    step="0.01"
-                    :placeholder="newPlanPrice.currency === 'USD' ? '9.90' : '49.90'"
-                  />
-                  <USelect
-                    v-model="newPlanPrice.interval"
-                    :items="[
-                      { label: 'Mensal', value: 'monthly' },
-                      { label: 'Anual', value: 'yearly' },
-                    ]"
-                  />
-                  <UButton type="button" color="neutral" @click="addPlanPriceToForm">
-                    <UIcon name="i-lucide-plus" />
-                  </UButton>
-                </div>
-                <div v-if="planForm.active_prices.length > 0" class="space-y-2">
-                  <div 
-                    v-for="(price, i) in planForm.active_prices" 
-                    :key="price.uuid || i" 
-                    :class="[
-                      'flex items-center justify-between p-2 rounded-lg',
-                      price.is_existing 
-                        ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' 
-                        : 'bg-gray-50 dark:bg-gray-800'
-                    ]"
-                  >
-                    <div class="flex items-center gap-2">
-                      <UBadge v-if="price.is_existing" color="primary" variant="subtle" size="xs">
-                        Existente
-                      </UBadge>
-                      <UBadge color="neutral" variant="subtle">{{ price.currency }}</UBadge>
-                      <span class="font-medium">{{ formatPrice(price.amount * 100, price.currency) }}</span>
-                      <span class="text-gray-500">/ {{ price.interval === 'monthly' ? 'mês' : 'ano' }}</span>
-                    </div>
-                    <UButton 
-                      type="button" 
-                      color="error" 
-                      variant="ghost" 
-                      size="xs"
-                      icon="i-lucide-trash-2"
-                      :loading="loading"
-                      @click="removePlanPriceFromForm(i)"
-                    />
+          <!-- Prices -->
+          <UFormField label="Preços" name="prices">
+            <div class="space-y-3">
+              <div class="grid grid-cols-4 gap-2">
+                <USelect
+                  v-model="newPlanPrice.currency"
+                  :items="currencyOptions"
+                  placeholder="Moeda"
+                />
+                <UInput 
+                  v-model.number="newPlanPrice.amount" 
+                  type="number" 
+                  min="0" 
+                  step="0.01"
+                  :placeholder="newPlanPrice.currency === 'USD' ? '9.90' : '49.90'"
+                />
+                <USelect
+                  v-model="newPlanPrice.interval"
+                  :items="[
+                    { label: 'Mensal', value: 'monthly' },
+                    { label: 'Anual', value: 'yearly' },
+                  ]"
+                />
+                <UButton type="button" color="neutral" @click="addPlanPriceToForm">
+                  <UIcon name="i-lucide-plus" />
+                </UButton>
+              </div>
+              <div v-if="planForm.active_prices.length > 0" class="space-y-2">
+                <div 
+                  v-for="(price, i) in planForm.active_prices" 
+                  :key="price.uuid || i" 
+                  :class="[
+                    'flex items-center justify-between p-2 rounded-lg',
+                    price.is_existing 
+                      ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' 
+                      : 'bg-gray-50 dark:bg-gray-800'
+                  ]"
+                >
+                  <div class="flex items-center gap-2">
+                    <UBadge v-if="price.is_existing" color="primary" variant="subtle" size="xs">
+                      Existente
+                    </UBadge>
+                    <UBadge color="neutral" variant="subtle">{{ price.currency }}</UBadge>
+                    <span class="font-medium">{{ formatPrice(price.amount * 100, price.currency) }}</span>
+                    <span class="text-gray-500">/ {{ price.interval === 'monthly' ? 'mês' : 'ano' }}</span>
                   </div>
+                  <UButton 
+                    type="button" 
+                    color="error" 
+                    variant="ghost" 
+                    size="xs"
+                    icon="i-lucide-trash-2"
+                    :loading="loading"
+                    @click="removePlanPriceFromForm(i)"
+                  />
                 </div>
-                <p v-else class="text-sm text-gray-400">Nenhum preço adicionado. Você pode adicionar depois.</p>
               </div>
-            </UFormField>
-
-            <div class="flex justify-end gap-2 pt-4">
-              <UButton type="button" color="neutral" variant="ghost" @click="showCreateModal = false">
-                Cancelar
-              </UButton>
-              <UButton type="submit" color="primary" :loading="loading">
-                {{ editingPlan ? 'Salvar' : 'Criar' }}
-              </UButton>
+              <p v-else class="text-sm text-gray-400">Nenhum preço adicionado. Você pode adicionar depois.</p>
             </div>
-          </form>
-        </UCard>
+          </UFormField>
+
+          <div class="flex justify-end gap-2 pt-4">
+            <UButton type="button" color="neutral" variant="ghost" @click="showCreateModal = false">
+              Cancelar
+            </UButton>
+            <UButton type="submit" color="primary" :loading="loading">
+              {{ editingPlan ? 'Salvar' : 'Criar' }}
+            </UButton>
+          </div>
+        </form>
+
       </template>
     </UModal>
 
