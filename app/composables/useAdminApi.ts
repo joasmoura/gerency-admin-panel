@@ -569,6 +569,30 @@ export function useAdminApi() {
     }
   };
 
+  const updateCourtesy = async (uuid: string, data: {
+    plan_uuid?: string;
+    expires_at?: string;
+    reason?: string;
+    indefinite?: boolean;
+  }) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: any }>(`${baseURL}/admin/courtesies/${uuid}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: data,
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // =========================================================================
   // TESTIMONIALS
   // =========================================================================
@@ -848,6 +872,7 @@ export function useAdminApi() {
     // Courtesies
     fetchCourtesies,
     grantCourtesy,
+    updateCourtesy,
     revokeCourtesy,
     extendCourtesy,
     // Testimonials

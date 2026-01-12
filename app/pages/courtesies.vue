@@ -6,9 +6,9 @@ const {
   fetchCourtesies, 
   fetchPlans, 
   fetchTenants, 
-  grantCourtesy, 
+  grantCourtesy,
+  updateCourtesy,
   revokeCourtesy, 
-  extendCourtesy,
   loading 
 } = useAdminApi()
 
@@ -16,20 +16,16 @@ const courtesies = ref<any[]>([])
 const plans = ref<Plan[]>([])
 const tenants = ref<TenantListItem[]>([])
 
-const showGrantModal = ref(false)
-const showExtendModal = ref(false)
+const showFormModal = ref(false)
+const isEditing = ref(false)
 const selectedCourtesy = ref<any>(null)
 
-const grantForm = ref({
+const courtesyForm = ref({
   tenant_uuid: '',
   plan_uuid: '',
   expires_at: '',
   reason: '',
   indefinite: false,
-})
-
-const extendForm = ref({
-  expires_at: '',
 })
 
 // Search for tenants
@@ -79,19 +75,54 @@ const handleTenantSearch = (value: string) => {
   }, 300)
 }
 
-const openGrantModal = () => {
-  grantForm.value = {
+const resetForm = () => {
+  courtesyForm.value = {
     tenant_uuid: '',
     plan_uuid: '',
     expires_at: '',
     reason: '',
     indefinite: false,
   }
-  showGrantModal.value = true
+  tenantSearch.value = ''
+  tenants.value = []
+  selectedCourtesy.value = null
+  isEditing.value = false
 }
 
-const handleGrant = async () => {
-  if (!grantForm.value.tenant_uuid || !grantForm.value.plan_uuid) {
+const openCreateModal = () => {
+  resetForm()
+  showFormModal.value = true
+}
+
+const openEditModal = (courtesy: any) => {
+  resetForm()
+  isEditing.value = true
+  selectedCourtesy.value = courtesy
+  
+  courtesyForm.value = {
+    tenant_uuid: courtesy.tenant?.uuid || '',
+    plan_uuid: courtesy.plan?.uuid || '',
+    expires_at: courtesy.courtesy_expires_at 
+      ? new Date(courtesy.courtesy_expires_at).toISOString().split('T')[0] 
+      : '',
+    reason: courtesy.courtesy_reason || '',
+    indefinite: !courtesy.courtesy_expires_at,
+  }
+  
+  tenantSearch.value = courtesy.tenant?.name || ''
+  showFormModal.value = true
+}
+
+const handleSubmit = async () => {
+  if (isEditing.value) {
+    await handleUpdate()
+  } else {
+    await handleCreate()
+  }
+}
+
+const handleCreate = async () => {
+  if (!courtesyForm.value.tenant_uuid || !courtesyForm.value.plan_uuid) {
     toast.add({
       title: 'Erro',
       description: 'Selecione a organização e o plano',
@@ -102,22 +133,55 @@ const handleGrant = async () => {
 
   try {
     await grantCourtesy({
-      tenant_uuid: grantForm.value.tenant_uuid,
-      plan_uuid: grantForm.value.plan_uuid,
-      expires_at: grantForm.value.indefinite ? undefined : grantForm.value.expires_at || undefined,
-      reason: grantForm.value.reason || undefined,
+      tenant_uuid: courtesyForm.value.tenant_uuid,
+      plan_uuid: courtesyForm.value.plan_uuid,
+      expires_at: courtesyForm.value.indefinite ? undefined : courtesyForm.value.expires_at || undefined,
+      reason: courtesyForm.value.reason || undefined,
     })
     toast.add({
       title: 'Sucesso',
       description: 'Cortesia concedida com sucesso',
       color: 'success',
     })
-    showGrantModal.value = false
+    showFormModal.value = false
     await loadData()
   } catch (err: any) {
     toast.add({
       title: 'Erro',
       description: err.data?.message || 'Erro ao conceder cortesia',
+      color: 'error',
+    })
+  }
+}
+
+const handleUpdate = async () => {
+  if (!selectedCourtesy.value || !courtesyForm.value.plan_uuid) {
+    toast.add({
+      title: 'Erro',
+      description: 'Selecione o plano',
+      color: 'error',
+    })
+    return
+  }
+
+  try {
+    await updateCourtesy(selectedCourtesy.value.uuid, {
+      plan_uuid: courtesyForm.value.plan_uuid,
+      expires_at: courtesyForm.value.indefinite ? undefined : courtesyForm.value.expires_at || undefined,
+      reason: courtesyForm.value.reason || undefined,
+      indefinite: courtesyForm.value.indefinite,
+    })
+    toast.add({
+      title: 'Sucesso',
+      description: 'Cortesia atualizada com sucesso',
+      color: 'success',
+    })
+    showFormModal.value = false
+    await loadData()
+  } catch (err: any) {
+    toast.add({
+      title: 'Erro',
+      description: err.data?.message || 'Erro ao atualizar cortesia',
       color: 'error',
     })
   }
@@ -138,40 +202,6 @@ const handleRevoke = async (courtesy: any) => {
     toast.add({
       title: 'Erro',
       description: err.data?.message || 'Erro ao revogar cortesia',
-      color: 'error',
-    })
-  }
-}
-
-const openExtendModal = (courtesy: any) => {
-  selectedCourtesy.value = courtesy
-  extendForm.value.expires_at = ''
-  showExtendModal.value = true
-}
-
-const handleExtend = async () => {
-  if (!selectedCourtesy.value || !extendForm.value.expires_at) {
-    toast.add({
-      title: 'Erro',
-      description: 'Informe a nova data de expiração',
-      color: 'error',
-    })
-    return
-  }
-
-  try {
-    await extendCourtesy(selectedCourtesy.value.uuid, extendForm.value.expires_at)
-    toast.add({
-      title: 'Sucesso',
-      description: 'Cortesia estendida com sucesso',
-      color: 'success',
-    })
-    showExtendModal.value = false
-    await loadData()
-  } catch (err: any) {
-    toast.add({
-      title: 'Erro',
-      description: err.data?.message || 'Erro ao estender cortesia',
       color: 'error',
     })
   }
@@ -214,7 +244,7 @@ const isExpiringSoon = (dateStr: string | null) => {
       <UButton
         color="primary"
         icon="i-lucide-gift"
-        @click="openGrantModal"
+        @click="openCreateModal"
       >
         Conceder Cortesia
       </UButton>
@@ -271,10 +301,10 @@ const isExpiringSoon = (dateStr: string | null) => {
               color="neutral"
               variant="ghost"
               size="sm"
-              icon="i-lucide-clock"
-              @click="openExtendModal(courtesy)"
+              icon="i-lucide-pencil"
+              @click="openEditModal(courtesy)"
             >
-              Estender
+              Editar
             </UButton>
             
             <UButton color="error" variant="ghost" size="sm" icon="i-lucide-x" @click="handleRevoke(courtesy)">
@@ -294,29 +324,30 @@ const isExpiringSoon = (dateStr: string | null) => {
       <p class="text-gray-500 mb-4">
         Conceda cortesias para organizações que precisam de acesso especial.
       </p>
-      <UButton color="primary" @click="openGrantModal">
+      <UButton color="primary" @click="openCreateModal">
         Conceder Cortesia
       </UButton>
     </UCard>
 
-    <!-- Grant Modal -->
-    <UModal v-model:open="showGrantModal">
+    <!-- Form Modal (Create/Edit) -->
+    <UModal v-model:open="showFormModal">
       <template #content>
         <UCard>
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="text-lg font-semibold">Conceder Cortesia</h3>
+              <h3 class="text-lg font-semibold">{{ isEditing ? 'Editar Cortesia' : 'Conceder Cortesia' }}</h3>
               <UButton
                 color="neutral"
                 variant="ghost"
                 icon="i-lucide-x"
-                @click="showGrantModal = false"
+                @click="showFormModal = false"
               />
             </div>
           </template>
 
-          <form @submit.prevent="handleGrant" class="space-y-4">
-            <UFormField label="Buscar Organização" name="tenant" required>
+          <form @submit.prevent="handleSubmit" class="space-y-4">
+            <!-- Tenant search - only for new courtesies -->
+            <UFormField v-if="!isEditing" label="Buscar Organização" name="tenant" required>
               <UInput
                 v-model="tenantSearch"
                 placeholder="Digite para buscar..."
@@ -329,8 +360,8 @@ const isExpiringSoon = (dateStr: string | null) => {
                   :key="tenant.uuid"
                   type="button"
                   class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  :class="{ 'bg-primary-50 dark:bg-primary-900/20': grantForm.tenant_uuid === tenant.uuid }"
-                  @click="grantForm.tenant_uuid = tenant.uuid; tenantSearch = tenant.name"
+                  :class="{ 'bg-primary-50 dark:bg-primary-900/20': courtesyForm.tenant_uuid === tenant.uuid }"
+                  @click="courtesyForm.tenant_uuid = tenant.uuid; tenantSearch = tenant.name"
                 >
                   <p class="font-medium">{{ tenant.name }}</p>
                   <p class="text-xs text-gray-500">{{ tenant.slug }}</p>
@@ -338,21 +369,27 @@ const isExpiringSoon = (dateStr: string | null) => {
               </div>
             </UFormField>
 
+            <!-- Show tenant name when editing -->
+            <div v-else class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <p class="text-sm text-gray-500">Organização</p>
+              <p class="font-semibold">{{ tenantSearch }}</p>
+            </div>
+
             <UFormField label="Plano" name="plan" required>
               <USelect
-                v-model="grantForm.plan_uuid"
+                v-model="courtesyForm.plan_uuid"
                 :items="plans.map(p => ({ label: p.name, value: p.uuid }))"
                 placeholder="Selecione o plano..."
               />
             </UFormField>
 
             <UFormField>
-              <UCheckbox v-model="grantForm.indefinite" label="Cortesia indefinida (sem data de expiração)" />
+              <UCheckbox v-model="courtesyForm.indefinite" label="Cortesia indefinida (sem data de expiração)" />
             </UFormField>
 
-            <UFormField v-if="!grantForm.indefinite" label="Data de Expiração" name="expires_at">
+            <UFormField v-if="!courtesyForm.indefinite" label="Data de Expiração" name="expires_at">
               <UInput
-                v-model="grantForm.expires_at"
+                v-model="courtesyForm.expires_at"
                 type="date"
                 :min="new Date().toISOString().split('T')[0]"
               />
@@ -360,59 +397,17 @@ const isExpiringSoon = (dateStr: string | null) => {
 
             <UFormField label="Motivo" name="reason">
               <UTextarea
-                v-model="grantForm.reason"
+                v-model="courtesyForm.reason"
                 placeholder="Descreva o motivo da cortesia..."
               />
             </UFormField>
 
             <div class="flex justify-end gap-2 pt-4">
-              <UButton type="button" color="neutral" variant="ghost" @click="showGrantModal = false">
+              <UButton type="button" color="neutral" variant="ghost" @click="showFormModal = false">
                 Cancelar
               </UButton>
               <UButton type="submit" color="primary" :loading="loading">
-                Conceder
-              </UButton>
-            </div>
-          </form>
-        </UCard>
-      </template>
-    </UModal>
-
-    <!-- Extend Modal -->
-    <UModal v-model:open="showExtendModal">
-      <template #content>
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between">
-              <h3 class="text-lg font-semibold">Estender Cortesia</h3>
-              <UButton
-                color="neutral"
-                variant="ghost"
-                icon="i-lucide-x"
-                @click="showExtendModal = false"
-              />
-            </div>
-          </template>
-
-          <form @submit.prevent="handleExtend" class="space-y-4">
-            <p class="text-gray-600 dark:text-gray-400">
-              Estendendo cortesia para: <strong>{{ selectedCourtesy?.tenant?.name }}</strong>
-            </p>
-
-            <UFormField label="Nova Data de Expiração" name="expires_at" required>
-              <UInput
-                v-model="extendForm.expires_at"
-                type="date"
-                :min="new Date().toISOString().split('T')[0]"
-              />
-            </UFormField>
-
-            <div class="flex justify-end gap-2 pt-4">
-              <UButton type="button" color="neutral" variant="ghost" @click="showExtendModal = false">
-                Cancelar
-              </UButton>
-              <UButton type="submit" color="primary" :loading="loading">
-                Estender
+                {{ isEditing ? 'Salvar' : 'Conceder' }}
               </UButton>
             </div>
           </form>
