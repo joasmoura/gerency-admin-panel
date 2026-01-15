@@ -1,7 +1,7 @@
 import type { AdminSupportTicket, AdminSupportDashboard } from '~/types/support'
 
 export function useAdminSupport() {
-  const { get, create, update, loading, error } = useApi()
+  const { show, request, create, update, loading, error } = useApi()
   const toast = useToast()
 
   const tickets = ref<AdminSupportTicket[]>([])
@@ -30,7 +30,7 @@ export function useAdminSupport() {
       if (filters?.sort_by) params.append('sort_by', filters.sort_by)
       if (filters?.sort_order) params.append('sort_order', filters.sort_order)
 
-      const response = await get(`admin/support?${params.toString()}`)
+      const response = await request(`/admin/support?${params.toString()}`, 'GET')
       tickets.value = response.data
       pagination.value = {
         current_page: response.current_page,
@@ -52,7 +52,7 @@ export function useAdminSupport() {
   // Buscar ticket específico
   async function fetchTicket(uuid: string) {
     try {
-      const response = await get(`admin/support/${uuid}`)
+      const response = await show(`/admin/support`, uuid)
       currentTicket.value = response
       return response
     } catch (err: any) {
@@ -73,7 +73,7 @@ export function useAdminSupport() {
     category?: string
   }) {
     try {
-      const response = await update(`admin/support/${uuid}`, data)
+      const response = await update(`/admin/support/${uuid}`, data)
       toast.add({
         title: 'Sucesso',
         description: 'Ticket atualizado com sucesso',
@@ -93,7 +93,7 @@ export function useAdminSupport() {
   // Adicionar resposta
   async function addResponse(ticketUuid: string, message: string, isInternalNote: boolean = false) {
     try {
-      const response = await create(`admin/support/${ticketUuid}/response`, {
+      const response = await create(`/admin/support/${ticketUuid}/response`, {
         message,
         is_internal_note: isInternalNote
       })
@@ -114,7 +114,7 @@ export function useAdminSupport() {
   // Buscar dashboard
   async function fetchDashboard(period: number = 30) {
     try {
-      const response = await get(`admin/support/dashboard?period=${period}`)
+      const response = await request(`/admin/support/dashboard?period=${period}`, 'GET')
       dashboard.value = response
       return response
     } catch (err: any) {
@@ -126,7 +126,7 @@ export function useAdminSupport() {
   // Buscar admins
   async function fetchAdmins() {
     try {
-      const response = await get('admin/support/admins')
+      const response = await request('/admin/support/admins', 'GET')
       admins.value = response
       return response
     } catch (err: any) {
@@ -138,7 +138,7 @@ export function useAdminSupport() {
   // Bulk update
   async function bulkUpdate(ticketIds: string[], action: string, value: any) {
     try {
-      const response = await create('admin/support/bulk-update', {
+      const response = await create('/admin/support/bulk-update', {
         ticket_ids: ticketIds,
         action,
         value

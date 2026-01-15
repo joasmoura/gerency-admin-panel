@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import type { AdminSupportTicket } from '~/types/support'
 
-definePageMeta({
-  layout: 'dashboard'
-})
-
 const route = useRoute()
 const router = useRouter()
 const ticketUuid = route.params.uuid as string

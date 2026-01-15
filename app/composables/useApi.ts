@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { AuthStore } from '#imports';
+import { useAdminAuthStore } from '#imports';
 
 export function useApi() {
   // Estado compartilhado
@@ -8,7 +8,7 @@ export function useApi() {
   const status = ref<number | null>(null);
   const data = ref<any>(null);
   const error = ref<any>(null);
-  const auth = AuthStore();
+  const auth = useAdminAuthStore();
 
   // Pega a base URL do runtime config
   const config = useRuntimeConfig();
@@ -170,17 +170,11 @@ export function useApi() {
   // Função para adicionar headers de autenticação
   const useAuthHeaders = () => {
     //const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    const token = auth.getToken;
-    const tenantUUID = auth.getSelectedTenant?.uuid as string;
-
+    const token = auth.token;
     const headers: Record<string, string> = {};
 
     if (token) {
       headers.Authorization = `Bearer ${token}`;
-    }
-
-    if (tenantUUID) {
-      headers['tenant-uuid'] = tenantUUID;
     }
 
     return headers;
