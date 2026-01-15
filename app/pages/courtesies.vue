@@ -102,11 +102,11 @@ const openEditModal = (courtesy: any) => {
   courtesyForm.value = {
     tenant_uuid: courtesy.tenant?.uuid || '',
     plan_uuid: courtesy.plan?.uuid || '',
-    expires_at: courtesy.courtesy_expires_at 
-      ? new Date(courtesy.courtesy_expires_at).toISOString().split('T')[0] 
+    expires_at: courtesy.expires_at 
+      ? new Date(courtesy.expires_at).toISOString().split('T')[0] 
       : '',
     reason: courtesy.courtesy_reason || '',
-    indefinite: !courtesy.courtesy_expires_at,
+    indefinite: courtesy.is_indefinite,
   }
   
   tenantSearch.value = courtesy.tenant?.name || ''

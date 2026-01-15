@@ -33,25 +33,25 @@ export interface PlanPrice {
 }
 
 export interface Subscription {
-  uuid: string;
+  uuid?: string;
   has_subscription: boolean;
   has_access: boolean;
   has_used_trial: boolean;
-  status: string;
-  is_active: boolean;
-  is_courtesy: boolean;
-  courtesy_reason: string | null;
-  courtesy_expires_at: string | null;
-  courtesy_indefinite: boolean;
-  on_trial: boolean;
-  trial_ends_at: string | null;
-  trial_days_remaining: number;
-  cancel_at_period_end: boolean;
-  canceled_at: string | null;
-  current_period_start: string | null;
-  current_period_end: string | null;
-  days_until_period_end: number;
-  plan: {
+  status?: string;
+  is_active?: boolean;
+  is_courtesy?: boolean;
+  courtesy_reason?: string | null;
+  courtesy_expires_at?: string | null;
+  courtesy_indefinite?: boolean;
+  on_trial?: boolean;
+  trial_ends_at?: string | null;
+  trial_days_remaining?: number;
+  cancel_at_period_end?: boolean;
+  canceled_at?: string | null;
+  current_period_start?: string | null;
+  current_period_end?: string | null;
+  days_until_period_end?: number;
+  plan?: {
     uuid: string;
     name: string;
     slug: string;
@@ -61,7 +61,7 @@ export interface Subscription {
       max_storage_gb: number;
     };
   } | null;
-  price: {
+  price?: {
     uuid: string;
     interval: string;
     formatted_price: string;
