@@ -36,6 +36,7 @@ export interface Subscription {
   uuid: string;
   has_subscription: boolean;
   has_access: boolean;
+  has_used_trial: boolean;
   status: string;
   is_active: boolean;
   is_courtesy: boolean;
