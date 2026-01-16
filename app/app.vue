@@ -17,7 +17,7 @@ useHead({
   }
 })
 
-const title = 'Gerency'
+const title = 'Gerency - Administração'
 const description = ''
 
 useSeoMeta({

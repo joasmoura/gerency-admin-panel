@@ -179,6 +179,33 @@ export interface BlogPost {
   updated_at: string;
 }
 
+export interface PrivacyPolicy {
+  id: number;
+  uuid: string;
+  type: 'privacy' | 'terms' | 'cookies' | 'refund' | 'disclaimer';
+  title: string;
+  slug: string;
+  content: string | null;
+  locale: string;
+  status: 'draft' | 'published' | 'archived';
+  meta_title: string | null;
+  meta_description: string | null;
+  version: string | null;
+  sort_order: number;
+  is_active: boolean;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const POLICY_TYPES = {
+  privacy: 'Política de Privacidade',
+  terms: 'Termos de Uso',
+  cookies: 'Política de Cookies',
+  refund: 'Política de Reembolso',
+  disclaimer: 'Aviso Legal',
+} as const;
+
 export function useAdminApi() {
   const config = useRuntimeConfig();
   const baseURL = config.public.apiBase;
@@ -847,6 +874,134 @@ export function useAdminApi() {
     }
   };
 
+  // =========================================================================
+  // PRIVACY POLICIES
+  // =========================================================================
+
+  const fetchPrivacyPolicies = async (params?: {
+    search?: string;
+    status?: string;
+    type?: string;
+    locale?: string;
+    page?: number;
+    per_page?: number;
+  }) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const query = new URLSearchParams();
+      if (params?.search) query.append('search', params.search);
+      if (params?.status) query.append('status', params.status);
+      if (params?.type) query.append('type', params.type);
+      if (params?.locale) query.append('locale', params.locale);
+      if (params?.page) query.append('page', String(params.page));
+      if (params?.per_page) query.append('per_page', String(params.per_page));
+      
+      const response = await $fetch<{ data: PrivacyPolicy[]; meta: any }>(`${baseURL}/admin/privacy-policies?${query}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return response;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchPrivacyPolicy = async (uuid: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: PrivacyPolicy }>(`${baseURL}/admin/privacy-policies/${uuid}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const createPrivacyPolicy = async (data: Partial<PrivacyPolicy>) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: PrivacyPolicy }>(`${baseURL}/admin/privacy-policies`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: data,
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const updatePrivacyPolicy = async (uuid: string, data: Partial<PrivacyPolicy>) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: PrivacyPolicy }>(`${baseURL}/admin/privacy-policies/${uuid}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: data,
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const deletePrivacyPolicy = async (uuid: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      await $fetch(`${baseURL}/admin/privacy-policies/${uuid}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const reorderPrivacyPolicies = async (items: { uuid: string; sort_order: number }[]) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      await $fetch(`${baseURL}/admin/privacy-policies/reorder`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: { items },
+      });
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     loading,
     error,
@@ -889,5 +1044,12 @@ export function useAdminApi() {
     updateBlogPost,
     deleteBlogPost,
     reorderBlogPosts,
+    // Privacy Policies
+    fetchPrivacyPolicies,
+    fetchPrivacyPolicy,
+    createPrivacyPolicy,
+    updatePrivacyPolicy,
+    deletePrivacyPolicy,
+    reorderPrivacyPolicies,
   };
 }

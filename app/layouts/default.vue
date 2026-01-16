@@ -44,6 +44,11 @@ const navigationItems: NavigationMenuItem[] = [
     icon: 'i-lucide-book-open',
     to: '/blog',
   },
+  {
+    label: 'Políticas',
+    icon: 'i-lucide-scroll-text',
+    to: '/privacy-policies',
+  },
 ]
 
 const handleLogout = async () => {
