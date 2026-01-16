@@ -326,42 +326,19 @@ const formatDate = (dateString: string | null) => {
               {{ formatDate(policy.published_at) }}
             </td>
             <td class="py-3 px-4 text-right" @click.stop>
-              <UDropdownMenu>
+              <UDropdownMenu :items="[
+                { label: 'Editar', icon: 'i-lucide-edit', onSelect: () => openEditPage(policy) },
+                policy.status !== 'published' ? 
+                  { label: 'Publicar', icon: 'i-lucide-globe', onSelect: () => handlePublish(policy) } : 
+                  { label: 'Despublicar', icon: 'i-lucide-eye-off', onSelect: () => handleUnpublish(policy) },
+                { label: 'Excluir', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => handleDelete(policy) }
+              ]">
                 <UButton
                   color="neutral"
                   variant="ghost"
                   icon="i-lucide-more-horizontal"
                   size="sm"
                 />
-                <template #content>
-                  <UDropdownMenuItem
-                    icon="i-lucide-edit"
-                    @click="openEditPage(policy)"
-                  >
-                    Editar
-                  </UDropdownMenuItem>
-                  <UDropdownMenuItem
-                    v-if="policy.status !== 'published'"
-                    icon="i-lucide-globe"
-                    @click="handlePublish(policy)"
-                  >
-                    Publicar
-                  </UDropdownMenuItem>
-                  <UDropdownMenuItem
-                    v-if="policy.status === 'published'"
-                    icon="i-lucide-eye-off"
-                    @click="handleUnpublish(policy)"
-                  >
-                    Despublicar
-                  </UDropdownMenuItem>
-                  <UDropdownMenuItem
-                    icon="i-lucide-trash-2"
-                    color="error"
-                    @click="handleDelete(policy)"
-                  >
-                    Excluir
-                  </UDropdownMenuItem>
-                </template>
               </UDropdownMenu>
             </td>
           </tr>
