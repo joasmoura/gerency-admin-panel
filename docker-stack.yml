@@ -33,6 +33,7 @@ services:
       - NODE_ENV=production
       - PORT=3002 # Porta padrão do Nuxt.js é 3000, mas pode ser alterada conforme necessário
       - NUXT_PUBLIC_API_BASE=https://api.gerency.com/api
+      - NUXT_PUBLIC_ADMIN_APP_URL=https://app.gerency.com
 
 networks:
   web:
