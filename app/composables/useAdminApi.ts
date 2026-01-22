@@ -1002,6 +1002,121 @@ export function useAdminApi() {
     }
   };
 
+  // =========================================================================
+  // IMPERSONATE
+  // =========================================================================
+
+  interface ImpersonateResponse {
+    token: string;
+    user: any;
+    tenant: {
+      uuid: string;
+      name: string;
+      slug: string;
+    } | null;
+    impersonated_by: {
+      name: string;
+      email: string;
+    };
+    log_uuid: string;
+  }
+
+  interface ImpersonateLogItem {
+    uuid: string;
+    admin: {
+      name: string;
+      email: string;
+    };
+    target_user: {
+      name: string;
+      email: string;
+    };
+    tenant: {
+      name: string;
+      slug: string;
+    } | null;
+    started_at: string;
+    ended_at: string | null;
+    ip_address: string | null;
+    duration: string | null;
+  }
+
+  const impersonateUser = async (userUuid: string, tenantUuid?: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ message: string; data: ImpersonateResponse }>(`${baseURL}/admin/impersonate/${userUuid}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: tenantUuid ? { tenant_uuid: tenantUuid } : {},
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchImpersonateLogs = async (params?: { page?: number; per_page?: number }) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const query = new URLSearchParams();
+      if (params?.page) query.append('page', String(params.page));
+      if (params?.per_page) query.append('per_page', String(params.per_page));
+      
+      const response = await $fetch<{ data: ImpersonateLogItem[]; meta: any }>(`${baseURL}/admin/impersonate/logs?${query}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return response;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchActiveImpersonateSessions = async () => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: ImpersonateLogItem[] }>(`${baseURL}/admin/impersonate/active`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const endImpersonateSession = async (logUuid: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      await $fetch(`${baseURL}/admin/impersonate/${logUuid}/end`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     loading,
     error,
@@ -1051,5 +1166,10 @@ export function useAdminApi() {
     updatePrivacyPolicy,
     deletePrivacyPolicy,
     reorderPrivacyPolicies,
+    // Impersonate
+    impersonateUser,
+    fetchImpersonateLogs,
+    fetchActiveImpersonateSessions,
+    endImpersonateSession,
   };
 }
