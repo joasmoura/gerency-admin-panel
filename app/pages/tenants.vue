@@ -2,12 +2,18 @@
 import type { TenantListItem, TenantDetail } from '~/composables/useAdminApi';
 
 const toast = useToast()
-const { fetchTenants, fetchTenant, loading } = useAdminApi()
+const { fetchTenants, fetchTenant, impersonateUser, loading } = useAdminApi()
+const config = useRuntimeConfig()
 
 const tenants = ref<TenantListItem[]>([])
 const meta = ref({ current_page: 1, last_page: 1, per_page: 20, total: 0 })
 const selectedTenant = ref<TenantDetail | null>(null)
 const showDetailModal = ref(false)
+
+// Impersonate state
+const showImpersonateModal = ref(false)
+const impersonateLoading = ref(false)
+const selectedUserForImpersonate = ref<{ uuid: string; name: string; email: string } | null>(null)
 
 // Filters
 const search = ref('')
@@ -103,6 +109,49 @@ const statusOptions = [
   { label: 'Cancelado', value: 'canceled' },
   { label: 'Expirado', value: 'expired' },
 ]
+
+// Impersonate functions
+const openImpersonateModal = (user: { uuid: string; name: string; email: string }) => {
+  selectedUserForImpersonate.value = user
+  showImpersonateModal.value = true
+}
+
+const confirmImpersonate = async () => {
+  if (!selectedUserForImpersonate.value || !selectedTenant.value) return
+  
+  impersonateLoading.value = true
+  try {
+    const result = await impersonateUser(
+      selectedUserForImpersonate.value.uuid,
+      selectedTenant.value.uuid
+    )
+    
+    // Build the URL for the admin app with impersonate token
+    const adminAppUrl = config.public.adminAppUrl || 'http://localhost:3000'
+    const impersonateUrl = `${adminAppUrl}/auth/impersonate?token=${encodeURIComponent(result.token)}&impersonated_by=${encodeURIComponent(result.impersonated_by.name)}`
+    
+    // Open in new tab
+    window.open(impersonateUrl, '_blank')
+    
+    toast.add({
+      title: 'Impersonate iniciado',
+      description: `Acessando como ${selectedUserForImpersonate.value.name}`,
+      color: 'success',
+    })
+    
+    showImpersonateModal.value = false
+    selectedUserForImpersonate.value = null
+  } catch (err: any) {
+    console.error('Error impersonating user:', err)
+    toast.add({
+      title: 'Erro',
+      description: err?.data?.message || 'Erro ao iniciar impersonate',
+      color: 'error',
+    })
+  } finally {
+    impersonateLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -281,7 +330,18 @@ const statusOptions = [
                     <p class="font-medium">{{ user.name }}</p>
                     <p class="text-sm text-gray-500">{{ user.email }}</p>
                   </div>
-                  <UBadge color="neutral" variant="subtle">{{ user.role }}</UBadge>
+                  <div class="flex items-center gap-2">
+                    <UBadge color="neutral" variant="subtle">{{ user.role }}</UBadge>
+                    <UButton
+                      color="warning"
+                      variant="soft"
+                      size="xs"
+                      icon="i-lucide-user-cog"
+                      @click="openImpersonateModal(user)"
+                    >
+                      Impersonate
+                    </UButton>
+                  </div>
                 </div>
               </div>
             </div>
@@ -330,6 +390,79 @@ const statusOptions = [
               </div>
             </div>
           </div>
+        </UCard>
+      </template>
+    </UModal>
+
+    <!-- Impersonate Confirmation Modal -->
+    <UModal v-model:open="showImpersonateModal">
+      <template #content>
+        <UCard>
+          <template #header>
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-warning-100 dark:bg-warning-900">
+                <UIcon name="i-lucide-user-cog" class="h-5 w-5 text-warning-600 dark:text-warning-400" />
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                  Confirmar Impersonate
+                </h3>
+                <p class="text-sm text-gray-500">
+                  Acessar o sistema como outro usuário
+                </p>
+              </div>
+            </div>
+          </template>
+
+          <div class="space-y-4">
+            <div class="rounded-lg bg-warning-50 dark:bg-warning-900/20 p-4">
+              <div class="flex items-start gap-3">
+                <UIcon name="i-lucide-alert-triangle" class="h-5 w-5 text-warning-600 dark:text-warning-400 flex-shrink-0 mt-0.5" />
+                <div class="text-sm text-warning-800 dark:text-warning-200">
+                  <p class="font-medium mb-1">Atenção</p>
+                  <p>
+                    Você está prestes a acessar o sistema como outro usuário. 
+                    Esta ação será registrada nos logs de auditoria.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="selectedUserForImpersonate" class="space-y-3">
+              <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+                <span class="text-sm text-gray-500">Usuário:</span>
+                <span class="font-medium">{{ selectedUserForImpersonate.name }}</span>
+              </div>
+              <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
+                <span class="text-sm text-gray-500">Email:</span>
+                <span class="font-medium">{{ selectedUserForImpersonate.email }}</span>
+              </div>
+              <div v-if="selectedTenant" class="flex items-center justify-between py-2">
+                <span class="text-sm text-gray-500">Organização:</span>
+                <span class="font-medium">{{ selectedTenant.name }}</span>
+              </div>
+            </div>
+          </div>
+
+          <template #footer>
+            <div class="flex items-center justify-end gap-3">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                @click="showImpersonateModal = false"
+              >
+                Cancelar
+              </UButton>
+              <UButton
+                color="warning"
+                :loading="impersonateLoading"
+                icon="i-lucide-user-cog"
+                @click="confirmImpersonate"
+              >
+                Acessar como usuário
+              </UButton>
+            </div>
+          </template>
         </UCard>
       </template>
     </UModal>

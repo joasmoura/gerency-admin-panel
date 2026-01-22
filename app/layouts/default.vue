@@ -35,6 +35,11 @@ const navigationItems: NavigationMenuItem[] = [
     to: '/courtesies',
   },
   {
+    label: 'Impersonate',
+    icon: 'i-lucide-user-cog',
+    to: '/impersonate-logs',
+  },
+  {
     label: 'Depoimentos',
     icon: 'i-lucide-message-square-quote',
     to: '/testimonials',
