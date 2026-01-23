@@ -206,6 +206,44 @@ export const POLICY_TYPES = {
   disclaimer: 'Aviso Legal',
 } as const;
 
+// Log types
+export interface LogFile {
+  name: string;
+  size: string;
+  size_bytes: number;
+  modified_at: string;
+  path: string;
+}
+
+export interface LogEntry {
+  id: number;
+  datetime: string;
+  environment: string;
+  level: string;
+  level_class: string;
+  message: string;
+  context: string;
+  stack_trace: string;
+  has_stack_trace: boolean;
+}
+
+export interface LogStats {
+  by_level: Record<string, number>;
+  by_hour: number[];
+  by_day: Record<string, number>;
+  total: number;
+  errors_today: number;
+  critical_count: number;
+}
+
+export interface LogFilters {
+  file?: string;
+  level?: string;
+  search?: string;
+  per_page?: number;
+  page?: number;
+}
+
 export function useAdminApi() {
   const config = useRuntimeConfig();
   const baseURL = config.public.apiBase;
@@ -1117,6 +1155,121 @@ export function useAdminApi() {
     }
   };
 
+  // =========================================================================
+  // SYSTEM LOGS
+  // =========================================================================
+
+  const fetchLogFiles = async () => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: LogFile[] }>(`${baseURL}/admin/logs/files`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchLogEntries = async (params: LogFilters) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ 
+        data: LogEntry[]; 
+        meta: { current_page: number; last_page: number; per_page: number; total: number };
+        stats: LogStats;
+      }>(`${baseURL}/admin/logs/entries`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        params,
+      });
+      return response;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchLogStats = async (file: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      const response = await $fetch<{ data: { file: LogFile; stats: LogStats } }>(`${baseURL}/admin/logs/stats`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        params: { file },
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const clearLogFile = async (file: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      await $fetch(`${baseURL}/admin/logs/clear`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: { file },
+      });
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const deleteLogFile = async (file: string) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      await $fetch(`${baseURL}/admin/logs/file`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        params: { file },
+      });
+    } catch (err) {
+      error.value = err;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const downloadLogFile = async (file: string) => {
+    const url = `${baseURL}/admin/logs/download?file=${encodeURIComponent(file)}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file;
+    link.target = '_blank';
+    
+    // Add auth token as query param for download
+    const downloadUrl = new URL(url);
+    downloadUrl.searchParams.set('token', adminStore.token || '');
+    
+    // Open in new window to trigger download
+    window.open(downloadUrl.toString(), '_blank');
+  };
+
   return {
     loading,
     error,
@@ -1171,5 +1324,12 @@ export function useAdminApi() {
     fetchImpersonateLogs,
     fetchActiveImpersonateSessions,
     endImpersonateSession,
+    // System Logs
+    fetchLogFiles,
+    fetchLogEntries,
+    fetchLogStats,
+    clearLogFile,
+    deleteLogFile,
+    downloadLogFile,
   };
 }

@@ -40,6 +40,11 @@ const navigationItems: NavigationMenuItem[] = [
     to: '/impersonate-logs',
   },
   {
+    label: 'Logs do Sistema',
+    icon: 'i-lucide-file-code',
+    to: '/logs',
+  },
+  {
     label: 'Depoimentos',
     icon: 'i-lucide-message-square-quote',
     to: '/testimonials',

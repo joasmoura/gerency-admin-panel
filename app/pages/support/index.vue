@@ -397,10 +397,10 @@ function formatTimeAgo(date: string) {
         <!-- Pagination -->
         <div v-if="pagination.last_page > 1" class="flex justify-center pt-4 border-t border-default">
           <UPagination
-            :model-value="pagination.current_page"
+            :default-page="pagination.current_page"
             :total="pagination.total"
-            :page-count="pagination.per_page"
-            @update:model-value="loadTickets"
+            :items-per-page="pagination.per_page"
+            @update:page="loadTickets"
           />
         </div>
       </UCard>
