@@ -21,13 +21,14 @@ onMounted(async () => {
   await loadPosts()
 })
 
-const loadPosts = async () => {
+const loadPosts = async (page = 1) => {
   try {
     const response = await fetchBlogPosts({
       search: searchQuery.value || undefined,
       status: statusFilter.value || undefined,
       locale: localeFilter.value || undefined,
-      per_page: 50,
+      per_page: 10,
+      page,
     })
     posts.value = response.data
     meta.value = response.meta
@@ -261,7 +262,6 @@ const formatDate = (dateString: string | null) => {
         Criar Post
       </UButton>
     </div>
-
     <!-- Posts Table -->
     <div v-else class="overflow-x-auto">
       <table class="w-full">
@@ -383,5 +383,17 @@ const formatDate = (dateString: string | null) => {
         </tbody>
       </table>
     </div>
+
+    <div class="flex items-center justify-between mt-5">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+          Página {{ meta.current_page }} de {{ meta.last_page }}
+        </div>
+        <UPagination
+          v-model:page="meta.current_page"
+          :items-per-page="meta.per_page"
+          :total="meta.total"
+          @update:page="loadPosts"
+        />
+      </div>
   </div>
 </template>
