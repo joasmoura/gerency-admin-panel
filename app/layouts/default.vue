@@ -59,6 +59,11 @@ const navigationItems: NavigationMenuItem[] = [
     icon: 'i-lucide-scroll-text',
     to: '/privacy-policies',
   },
+  {
+    label: 'Suporte',
+    icon: 'i-lucide-headset',
+    to: '/support',
+  },
 ]
 
 const handleLogout = async () => {
