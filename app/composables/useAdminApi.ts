@@ -795,6 +795,7 @@ export function useAdminApi() {
     is_featured?: boolean;
     page?: number;
     per_page?: number;
+    locale?: string;
   }) => {
     loading.value = true;
     error.value = null;
@@ -807,6 +808,7 @@ export function useAdminApi() {
       if (params?.is_featured !== undefined) query.append('is_featured', String(params.is_featured));
       if (params?.page) query.append('page', String(params.page));
       if (params?.per_page) query.append('per_page', String(params.per_page));
+      if (params?.locale) query.append('locale', params.locale);
       
       const response = await $fetch<{ data: BlogPost[]; meta: any }>(`${baseURL}/admin/blog?${query}`, {
         method: 'GET',
