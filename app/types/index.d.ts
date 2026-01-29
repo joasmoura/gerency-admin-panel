@@ -27,6 +27,7 @@ export interface User {
   status: UserStatus
   location: string
   tenants?: Tenant[]
+  last_activity_at?: string
 }
 
 export interface Customer {
