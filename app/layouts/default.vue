@@ -132,9 +132,9 @@ const userMenuItems = computed(() => [[
       </template>
     </UDashboardSidebar>
 
-    <div class="flex-1 flex flex-col min-h-screen">
+    <div class="flex-1 flex flex-col min-h-screen" >
       <!-- Top Bar -->
-      <header class="h-14 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center px-4">
+      <header v-if="false" class="h-14 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center px-4">
         <div class="flex-1">
           <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
             Painel Administrativo
@@ -147,10 +147,27 @@ const userMenuItems = computed(() => [[
         </div>
       </header>
 
-      <!-- Main Content -->
-      <main class="flex-1 p-6 bg-gray-50 dark:bg-gray-900 overflow-auto">
-        <slot />
-      </main>
+      <UDashboardPanel data-dashboard-panel :ui="{body: ' p-0 sm:p-0'}">
+        <template #header>
+          <UDashboardNavbar title="Painel administrativo" data-dashboard-navbar :ui="{ right: 'gap-3' }">
+            <template #leading>
+              <UDashboardSidebarCollapse />
+            </template>
+
+            <template #right>
+              <slot name="actions" />
+              <NotificationsButton />
+            </template>
+          </UDashboardNavbar>
+        </template>
+
+        <template #body>
+          <!-- Main Content -->
+          <main class="flex-1 p-6 bg-gray-50 dark:bg-gray-900 overflow-auto">
+            <slot />
+          </main>
+        </template>
+      </UDashboardPanel>
     </div>
   </UDashboardGroup>
 </template>
