@@ -112,17 +112,17 @@ const selectPlan = (plan: Plan, price: PlanPrice) => {
         <div class="text-center mb-6">
           <div class="flex items-baseline justify-center">
             <span class="text-4xl font-bold text-gray-900 dark:text-white">
-              {{ plan.selectedPrice?.formatted_price }}
+              {{ billingInterval === 'yearly' && plan.selectedPrice?.formatted_monthly_equivalent ? plan.selectedPrice.formatted_monthly_equivalent : plan.selectedPrice?.formatted_price }}
             </span>
             <span class="ml-1 text-gray-500 dark:text-gray-400">
-              /{{ billingInterval === 'monthly' ? 'mês' : 'ano' }}
+              /mês
             </span>
           </div>
           <p
             v-if="billingInterval === 'yearly' && plan.selectedPrice"
-            class="mt-1 text-sm text-gray-500 dark:text-gray-400"
+            class="mt-1 text-sm text-green-600 dark:text-green-400 font-medium"
           >
-            {{ plan.selectedPrice.formatted_monthly_equivalent }}/mês
+            Cobrado {{ plan.selectedPrice.formatted_price }}/ano
           </p>
         </div>
 
