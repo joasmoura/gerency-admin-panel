@@ -99,14 +99,6 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
   }
 }
 
-const statusOptions = [
-  { label: 'Planejamento', value: 'planning' },
-  { label: 'Em Andamento', value: 'in_progress' },
-  { label: 'Em Espera', value: 'on_hold' },
-  { label: 'Concluído', value: 'completed' },
-  { label: 'Cancelado', value: 'cancelled' }
-]
-
 const customerOptions = computed(() => {
   return customers.value.map(c => ({
     label: c.name,
@@ -130,79 +122,15 @@ const memberOptions = computed(() => {
       <UForm
         :schema="schema"
         :state="state"
-        class="space-y-4 max-h-[70vh] overflow-y-auto pr-2"
+        class="max-h-[70vh] overflow-y-auto pr-2"
         @submit="onSubmit"
       >
-        <UFormField label="Nome do Projeto" name="name" required>
-          <UInput v-model="state.name" placeholder="Nome do projeto" class="w-full" />
-        </UFormField>
-
-        <UFormField label="Descrição" name="description">
-          <UTextarea v-model="state.description" placeholder="Descrição do projeto" class="w-full" :rows="3" />
-        </UFormField>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UFormField label="Cliente" name="customer_id">
-            <USelectMenu
-              v-model="state.customer_id"
-              :items="customerOptions"
-              placeholder="Selecione um cliente"
-              class="w-full"
-              value-key="value"
-              :search-input="{ placeholder: 'Buscar cliente...' }"
-            />
-          </UFormField>
-          <UFormField label="Status" name="status">
-            <USelect v-model="state.status" :items="statusOptions" class="w-full" />
-          </UFormField>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UFormField label="Responsável" name="responsible_id">
-            <USelectMenu
-              v-model="state.responsible_id"
-              :items="memberOptions"
-              placeholder="Selecione um responsável"
-              class="w-full"
-              value-key="value"
-              :search-input="{ placeholder: 'Buscar responsável...' }"
-            />
-          </UFormField>
-          <UFormField label="Prazo (dias)" name="deadline_days">
-            <UInput v-model.number="state.deadline_days" type="number" placeholder="0" class="w-full" />
-          </UFormField>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UFormField label="Data de Início" name="start_date">
-            <UInput v-model="state.start_date" type="date" class="w-full" />
-          </UFormField>
-          <UFormField label="Data de Entrega" name="due_date">
-            <UInput v-model="state.due_date" type="date" class="w-full" />
-          </UFormField>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UFormField label="Orçamento (R$)" name="budget">
-            <UInput v-model.number="state.budget" type="number" step="0.01" placeholder="0.00" class="w-full" />
-          </UFormField>
-          <UFormField label="Valor/Hora (R$)" name="hourly_rate">
-            <UInput v-model.number="state.hourly_rate" type="number" step="0.01" placeholder="0.00" class="w-full" />
-          </UFormField>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UFormField label="Horas Estimadas" name="estimated_hours">
-            <UInput v-model.number="state.estimated_hours" type="number" step="0.5" placeholder="0" class="w-full" />
-          </UFormField>
-          <UFormField label="Progresso (%)" name="progress">
-            <UInput v-model.number="state.progress" type="number" min="0" max="100" placeholder="0" class="w-full" />
-          </UFormField>
-        </div>
-
-        <UFormField label="Observações" name="notes">
-          <UTextarea v-model="state.notes" placeholder="Observações sobre o projeto" class="w-full" :rows="3" />
-        </UFormField>
+        <ProjectsProjectFormFields
+          :state="(state as any)"
+          mode="create"
+          :customer-options="customerOptions"
+          :member-options="memberOptions"
+        />
 
         <div class="flex justify-end gap-2 pt-4">
           <UButton
