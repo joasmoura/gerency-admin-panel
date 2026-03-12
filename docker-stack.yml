@@ -15,7 +15,7 @@ services:
       - "traefik.docker.network=web"
     deploy:
       mode: replicated
-      replicas: 2
+      replicas: 1
       update_config:
         parallelism: 1              # atualiza 1 container por vez
         delay: 10s                  # espera 10s entre cada atualização
